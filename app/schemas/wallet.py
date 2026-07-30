@@ -22,3 +22,6 @@ class WalletResponse(BaseModel):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class WalletLookupResponse(BaseModel):
+    wallet_id: uuid.UUID
+    masked_name: str

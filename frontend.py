@@ -88,21 +88,44 @@ else:
     st.divider()
 
     st.subheader("Transfer Funds")
+    
+    contacts_response = requests.get(
+        f"{API_URL}/transactions/{st.session_state.wallet_id}/contacts",
+        headers=headers
+    )
+    contacts = contacts_response.json() if contacts_response.status_code == 200 else []
+    
+    if contacts:
+        selected_contact = st.pills("Recent Contacts", contacts)
+    else:
+        selected_contact = None
+
+    default_upi = selected_contact if selected_contact else ""
+    upi_id = st.text_input("Recipient UPI ID", value=default_upi)
+
+    verified_wallet_id = None
+    if upi_id:
+        lookup_res = requests.get(f"{API_URL}/wallets/lookup/{upi_id}", headers=headers)
+        if lookup_res.status_code == 200:
+            data = lookup_res.json()
+            st.success(f"✅ Verified: {data['masked_name']}")
+            verified_wallet_id = data['wallet_id']
+        else:
+            st.error("❌ UPI ID not found.")
+
     with st.form("transfer_form"):
-        to_wallet_id = st.text_input("Recipient Wallet ID")
         transfer_amount = st.number_input("Transfer Amount", min_value=1.0, step=100.0)
         submitted = st.form_submit_button("Send Funds")
         
         if submitted:
-            if not to_wallet_id:
-                st.error("Please enter a Recipient Wallet ID.")
+            if not verified_wallet_id:
+                st.error("Please enter a valid Recipient UPI ID.")
             else:
                 payload = {
                     "from_wallet_id": st.session_state.wallet_id,
-                    "to_wallet_id": to_wallet_id,
+                    "to_wallet_id": verified_wallet_id,
                     "amount": transfer_amount
                 }
-                headers = {"Authorization": f"Bearer {st.session_state.token}"}
                 
                 transfer_response = requests.post(
                     f"{API_URL}/transactions/transfer",
@@ -120,6 +143,22 @@ else:
                         error_msg = f"Server Error: {transfer_response.text}"
                         
                     st.error(f"Error: {error_msg}")
+
+    st.divider()
+
+    st.subheader("Transaction History")
+    history_response = requests.get(
+        f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
+        headers=headers
+    )
+    if history_response.status_code == 200:
+        history = history_response.json()
+        if history:
+            st.dataframe(history)
+        else:
+            st.info("No transactions found.")
+    else:
+        st.error("Failed to load history.")
 
     st.divider()
 

@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import Transaction, Wallet
+from app.models.base import Transaction, Wallet, User
 from app.schemas.transaction import (
     TransactionCreate,
     TransactionStatus,
@@ -80,3 +80,22 @@ async def transfer_funds(db: AsyncSession, transfer_in: TransferCreate):
     await db.refresh(debit_tx)
     await db.refresh(credit_tx)
     return debit_tx, credit_tx
+
+async def get_contacts_by_wallet(db: AsyncSession, wallet_id: uuid.UUID):
+    stmt1 = select(Transaction.reference_id).where(
+        Transaction.wallet_id == wallet_id, 
+        Transaction.reference_id.isnot(None)
+    ).distinct()
+    result = await db.scalars(stmt1)
+    ref_ids = result.all()
+    
+    if not ref_ids:
+        return []
+        
+    stmt2 = select(User.upi_id).join(Wallet, User.id == Wallet.user_id).join(Transaction, Wallet.id == Transaction.wallet_id).where(
+        Transaction.reference_id.in_(ref_ids),
+        Transaction.wallet_id != wallet_id
+    ).distinct()
+    
+    result2 = await db.scalars(stmt2)
+    return result2.all()

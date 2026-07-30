@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: EmailStr
+    upi_id: str
     first_name: str
     last_name: str | None = None
     wallet_id: uuid.UUID | None = None

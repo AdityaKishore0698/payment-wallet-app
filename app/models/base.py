@@ -29,6 +29,7 @@ class User(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
     email : Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    upi_id : Mapped[str] = mapped_column(String, unique=True, nullable=False)
     first_name : Mapped[str] = mapped_column(String, nullable=False)
     last_name : Mapped[str] = mapped_column(String, nullable = True)
     created_at : Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())

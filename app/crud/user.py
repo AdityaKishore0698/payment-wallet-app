@@ -1,7 +1,9 @@
+import random
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.security import get_password_hash, verify_password
 from app.models.base import User, Wallet
@@ -12,6 +14,7 @@ async def create_user(db: AsyncSession, user: UserCreate):
     user_data = user.model_dump()
     plain_password = user_data.pop("password")
     user_data["hashed_password"] = get_password_hash(plain_password)
+    user_data["upi_id"] = f"{user_data['first_name'].lower().replace(' ', '')}{random.randint(100, 999)}@wallet"
     db_user = User(**user_data)
     db.add(db_user)
     await db.flush()
@@ -33,3 +36,7 @@ async def authentic_user(db: AsyncSession, email: str, password: str):
     if not verify_password(password, user.hashed_password):
         return None
     return user
+
+async def get_user_by_upi_id(db: AsyncSession, upi_id: str):
+    stmt = select(User).options(joinedload(User.wallet)).where(User.upi_id == upi_id)
+    return await db.scalar(stmt)
