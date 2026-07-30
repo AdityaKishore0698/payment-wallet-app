@@ -1,12 +1,17 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.routes import auth, transaction, user, wallet
 from app.core.database import engine
 from app.models.base import Base
 
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
 
-app = FastAPI(title="Digital Wallet API", version="1.0.0")
+app = FastAPI(title="Digital Wallet API", version="1.0.0", lifespan=lifespan)
 
 app.include_router(auth.router)
 app.include_router(user.router)

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import create_access_token
@@ -12,11 +12,11 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 db_dependency = Depends(get_db)
 
 @router.post("/login")
-def login(
+async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: Session = db_dependency,
+    db: AsyncSession = db_dependency,
 ):
-    user = authentic_user(db, form_data.username, form_data.password)
+    user = await authentic_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(401, "Incorrect email or password")
     access_token = create_access_token(data={"sub": str(user.id)})

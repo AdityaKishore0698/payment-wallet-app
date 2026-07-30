@@ -1,15 +1,15 @@
 import uuid
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import Wallet
 
 
-def get_wallet_by_id(db: Session, wallet_id: uuid.UUID):
+async def get_wallet_by_id(db: AsyncSession, wallet_id: uuid.UUID):
     stmt = select(Wallet).where(Wallet.id == wallet_id)
-    return db.scalar(stmt)
+    return await db.scalar(stmt)
 
-def get_wallet_by_user_id(db: Session, user_id: uuid.UUID):
+async def get_wallet_by_user_id(db: AsyncSession, user_id: uuid.UUID):
     stmt = select(Wallet).where(Wallet.user_id == user_id)
-    return db.scalar(stmt)
+    return await db.scalar(stmt)

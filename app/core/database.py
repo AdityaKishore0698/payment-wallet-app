@@ -1,15 +1,11 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-db_url = "postgresql+psycopg://postgres:postgres@localhost:5432/wallet_db"
+db_url = "postgresql+psycopg_async://postgres:postgres@localhost:5432/wallet_db"
 
-engine = create_engine(db_url)
+engine = create_async_engine(db_url)
 
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit = False)
+SessionLocal = async_sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
-def get_db():
-    session = SessionLocal()
-    try:
+async def get_db():
+    async with SessionLocal() as session:
         yield session
-    finally:
-        session.close()
