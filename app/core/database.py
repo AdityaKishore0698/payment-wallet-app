@@ -1,6 +1,7 @@
+import os
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-db_url = "postgresql+psycopg_async://postgres:postgres@localhost:5432/wallet_db"
+db_url = os.getenv("DATABASE_URL", "postgresql+psycopg_async://postgres:postgres@localhost:5432/wallet_db")
 
 engine = create_async_engine(db_url)
 

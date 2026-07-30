@@ -6,7 +6,7 @@ import streamlit as st
 
 os.environ["NO_PROXY"] = "localhost,127.0.0.1"
 
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 if "token" not in st.session_state:
     st.session_state.token = None
@@ -64,6 +64,12 @@ else:
     # (We set verify_signature=False because the backend already verifies it!)
     decoded_token = jwt.decode(st.session_state.token, options={"verify_signature": False})
     user_id = decoded_token["sub"]
+    
+    # Fetch user data to display UPI ID
+    user_response = requests.get(f"{API_URL}/users/{user_id}")
+    if user_response.status_code == 200:
+        user_data = user_response.json()
+        st.markdown(f"**Your UPI ID:** `{user_data['upi_id']}`")
     
     # 2. Fetch the wallet data from the backend
     # We MUST pass the token in the Authorization header!
