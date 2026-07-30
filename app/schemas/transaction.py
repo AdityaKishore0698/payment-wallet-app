@@ -37,3 +37,6 @@ class TransferCreate(BaseModel):
 
 class AddFundsRequest(BaseModel):
     amount: Decimal = Field(gt=0, max_digits=10, decimal_places=2, description="Amount must be greater than zero")
+class PaginatedTransactionResponse(BaseModel):
+    data: list[TransactionResponse]
+    next_cursor: str | None = None

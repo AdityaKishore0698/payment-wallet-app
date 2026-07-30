@@ -28,8 +28,30 @@ async def create_transaction(db: AsyncSession, wallet_id: uuid.UUID, transaction
     await db.refresh(transaction) 
     return transaction
 
-async def get_transactions_by_wallet(db: AsyncSession, wallet_id: uuid.UUID, skip: int = 0, limit: int = 100):
-    stmt = select(Transaction).where(Transaction.wallet_id == wallet_id).order_by(Transaction.created_at.desc()).offset(skip).limit(limit)
+import base64
+from datetime import datetime
+from sqlalchemy import or_, and_
+
+async def get_transactions_by_wallet(db: AsyncSession, wallet_id: uuid.UUID, cursor: str | None = None, limit: int = 100):
+    stmt = select(Transaction).where(Transaction.wallet_id == wallet_id)
+    
+    if cursor:
+        try:
+            decoded = base64.b64decode(cursor).decode('utf-8')
+            created_at_str, tx_id_str = decoded.split('|')
+            cursor_created_at = datetime.fromisoformat(created_at_str)
+            cursor_tx_id = uuid.UUID(tx_id_str)
+            
+            stmt = stmt.where(
+                or_(
+                    Transaction.created_at < cursor_created_at,
+                    and_(Transaction.created_at == cursor_created_at, Transaction.id < cursor_tx_id)
+                )
+            )
+        except Exception:
+            pass
+            
+    stmt = stmt.order_by(Transaction.created_at.desc(), Transaction.id.desc()).limit(limit)
     result = await db.scalars(stmt)
     transactions = result.all()
     
@@ -50,7 +72,15 @@ async def get_transactions_by_wallet(db: AsyncSession, wallet_id: uuid.UUID, ski
         setattr(tx, 'counterparty_name', counterparty_name)
         enriched_txs.append(tx)
         
-    return enriched_txs
+    next_cursor = None
+    if len(enriched_txs) == limit:
+        last_tx = enriched_txs[-1]
+        # Make sure tz-naive datetimes can be ISO formatted, or strip timezone if not present.
+        # Actually isoformat() handles it natively.
+        raw_cursor = f"{last_tx.created_at.isoformat()}|{last_tx.id}"
+        next_cursor = base64.b64encode(raw_cursor.encode('utf-8')).decode('utf-8')
+        
+    return {"data": enriched_txs, "next_cursor": next_cursor}
 
 async def transfer_funds(db: AsyncSession, transfer_in: TransferCreate):
     if transfer_in.from_wallet_id == transfer_in.to_wallet_id:

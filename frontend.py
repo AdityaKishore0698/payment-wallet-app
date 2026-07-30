@@ -24,6 +24,7 @@ if st.session_state.token is None:
             response = requests.post(f"{API_URL}/auth/login", data={"username": email, "password": password})
             if response.status_code == 200:
                 st.session_state.token = response.json()["access_token"]
+                st.session_state.history_loaded = False
                 st.success("Logged in successfully!")
                 st.rerun()
             else:
@@ -112,6 +113,7 @@ else:
         
         if tx_response.status_code == 200:
             st.success(f"Successfully added ₹{amount} to your wallet!")
+            st.session_state.history_loaded = False
             st.rerun()
         else:
             try:
@@ -172,6 +174,7 @@ else:
                 if transfer_response.status_code == 200:
                     txs = transfer_response.json()
                     st.success(f"✅ Transferred ₹{transfer_amount} to {data['masked_name']} (Ref: {txs[0]['reference_id']})")
+                    st.session_state.history_loaded = False
                 else:
                     try:
                         error_msg = transfer_response.json().get("detail", "Transfer failed")
@@ -183,30 +186,57 @@ else:
     st.divider()
 
     st.subheader("Transaction History")
-    history_response = requests.get(
-        f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
-        headers=headers
-    )
-    if history_response.status_code == 200:
-        history = history_response.json()
-        if history:
-            import pandas as pd
-            df = pd.DataFrame(history)
-            
-            # Reorder and rename columns for a better view
-            cols = ["created_at", "type", "amount", "counterparty_name", "status", "reference_id"]
-            df = df[[c for c in cols if c in df.columns]]
-            df.rename(columns={"counterparty_name": "Counterparty"}, inplace=True)
-            
-            st.dataframe(df)
+    
+    if "history_loaded" not in st.session_state:
+        st.session_state.history_loaded = False
+        st.session_state.history_data = []
+        st.session_state.next_cursor = None
+
+    if not st.session_state.history_loaded:
+        history_response = requests.get(
+            f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
+            headers=headers,
+            params={"limit": 10}
+        )
+        if history_response.status_code == 200:
+            history = history_response.json()
+            st.session_state.history_data = history["data"]
+            st.session_state.next_cursor = history.get("next_cursor")
+            st.session_state.history_loaded = True
         else:
-            st.info("No transactions found.")
+            st.error("Failed to load history.")
+
+    if st.session_state.history_data:
+        import pandas as pd
+        df = pd.DataFrame(st.session_state.history_data)
+        
+        # Reorder and rename columns for a better view
+        cols = ["created_at", "type", "amount", "counterparty_name", "status", "reference_id"]
+        df = df[[c for c in cols if c in df.columns]]
+        df.rename(columns={"counterparty_name": "Counterparty"}, inplace=True)
+        
+        st.dataframe(df)
+        
+        if st.session_state.next_cursor:
+            if st.button("Load More"):
+                more_response = requests.get(
+                    f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
+                    headers=headers,
+                    params={"limit": 10, "cursor": st.session_state.next_cursor}
+                )
+                if more_response.status_code == 200:
+                    more_data = more_response.json()
+                    st.session_state.history_data.extend(more_data["data"])
+                    st.session_state.next_cursor = more_data.get("next_cursor")
+                    st.rerun()
+                else:
+                    st.error("Failed to load more history.")
     else:
-        st.error("Failed to load history.")
+        st.info("No transactions found.")
 
     st.divider()
 
-    # Keep your logout button at the bottom
     if st.button("Logout"):
         st.session_state.token = None
+        st.session_state.history_loaded = False
         st.rerun()
