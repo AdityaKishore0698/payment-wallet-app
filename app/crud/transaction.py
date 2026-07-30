@@ -31,7 +31,26 @@ async def create_transaction(db: AsyncSession, wallet_id: uuid.UUID, transaction
 async def get_transactions_by_wallet(db: AsyncSession, wallet_id: uuid.UUID, skip: int = 0, limit: int = 100):
     stmt = select(Transaction).where(Transaction.wallet_id == wallet_id).order_by(Transaction.created_at.desc()).offset(skip).limit(limit)
     result = await db.scalars(stmt)
-    return result.all()
+    transactions = result.all()
+    
+    enriched_txs = []
+    for tx in transactions:
+        counterparty_name = None
+        if tx.reference_id:
+            stmt_other = select(User.first_name, User.last_name).join(Wallet, User.id == Wallet.user_id).join(Transaction, Wallet.id == Transaction.wallet_id).where(
+                Transaction.reference_id == tx.reference_id,
+                Transaction.wallet_id != wallet_id
+            )
+            res = await db.execute(stmt_other)
+            row = res.first()
+            if row:
+                first, last = row
+                counterparty_name = f"{first} {last}" if last else first
+        
+        setattr(tx, 'counterparty_name', counterparty_name)
+        enriched_txs.append(tx)
+        
+    return enriched_txs
 
 async def transfer_funds(db: AsyncSession, transfer_in: TransferCreate):
     if transfer_in.from_wallet_id == transfer_in.to_wallet_id:

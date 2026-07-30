@@ -73,10 +73,12 @@ else:
     if wallet_response.status_code == 200:
         wallet_data = wallet_response.json()
         
+        st.subheader(f"👛 {wallet_data.get('name', 'Main Wallet')}")
+        
         # 3. Display the balance beautifully
         st.metric(
             label="Current Balance", 
-            value=f"{wallet_data['balance']} {wallet_data['currency']}"
+            value=f"₹{wallet_data['balance']}"
         )
         
         # Save the wallet_id in session state for the next task (Transactions!)
@@ -86,29 +88,25 @@ else:
     
     st.divider() # Draws a nice horizontal line
 
-    st.subheader("Make a Transaction")
+    st.subheader("Add Funds from Bank")
     
     # 1. The Input Fields
-    amount = st.number_input("Amount", min_value=1.0, step=100.0)
-    tx_type = st.radio("Transaction Type", ["CREDIT", "DEBIT"])
+    amount = st.number_input("Amount to add", min_value=1.0, max_value=50000.0, step=100.0)
     
     # 2. The Submit Button
-    if st.button("Submit Transaction"):
-        # We send JSON data for this endpoint, and our Token in the headers!
-        payload = {"amount": amount, "type": tx_type}
+    if st.button("Add Funds"):
+        payload = {"amount": amount}
         headers = {"Authorization": f"Bearer {st.session_state.token}"}
         
-        # Make the POST request using the wallet_id we saved earlier
         tx_response = requests.post(
-            f"{API_URL}/transactions/{st.session_state.wallet_id}",
+            f"{API_URL}/transactions/add_funds/{st.session_state.wallet_id}",
             json=payload,
             headers=headers
         )
         
-        # 3. Handle the Result
         if tx_response.status_code == 200:
-            st.success("Transaction successful!")
-            st.rerun() # Refresh the page to see the new balance!
+            st.success(f"Successfully added ₹{amount} to your wallet!")
+            st.rerun()
         else:
             try:
                 error_msg = tx_response.json().get("detail", "Transaction failed")
@@ -166,8 +164,8 @@ else:
                 )
                 
                 if transfer_response.status_code == 200:
-                    st.success("Transfer successful!")
-                    st.rerun()
+                    txs = transfer_response.json()
+                    st.success(f"✅ Transferred ₹{transfer_amount} to {data['masked_name']} (Ref: {txs[0]['reference_id']})")
                 else:
                     try:
                         error_msg = transfer_response.json().get("detail", "Transfer failed")
@@ -186,7 +184,15 @@ else:
     if history_response.status_code == 200:
         history = history_response.json()
         if history:
-            st.dataframe(history)
+            import pandas as pd
+            df = pd.DataFrame(history)
+            
+            # Reorder and rename columns for a better view
+            cols = ["created_at", "type", "amount", "counterparty_name", "status", "reference_id"]
+            df = df[[c for c in cols if c in df.columns]]
+            df.rename(columns={"counterparty_name": "Counterparty"}, inplace=True)
+            
+            st.dataframe(df)
         else:
             st.info("No transactions found.")
     else:

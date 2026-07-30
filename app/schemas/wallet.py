@@ -16,6 +16,7 @@ class WalletCreate(BaseModel):
 
 class WalletResponse(BaseModel):
     id: uuid.UUID
+    name: str
     user_id: uuid.UUID
     balance: Decimal
     currency: Currency

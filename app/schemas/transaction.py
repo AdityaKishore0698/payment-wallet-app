@@ -25,6 +25,7 @@ class TransactionResponse(BaseModel):
     amount: Decimal
     type: TransactionType
     reference_id: uuid.UUID | None = None
+    counterparty_name: str | None = None
     status: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -33,3 +34,6 @@ class TransferCreate(BaseModel):
     from_wallet_id: uuid.UUID
     to_wallet_id: uuid.UUID
     amount: Decimal = Field(gt=0, description="Amount must be greater than zero")
+
+class AddFundsRequest(BaseModel):
+    amount: Decimal = Field(gt=0, max_digits=10, decimal_places=2, description="Amount must be greater than zero")

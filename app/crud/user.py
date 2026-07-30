@@ -18,7 +18,7 @@ async def create_user(db: AsyncSession, user: UserCreate):
     db_user = User(**user_data)
     db.add(db_user)
     await db.flush()
-    new_wallet = Wallet(user_id=db_user.id, balance=0, currency="INR")
+    new_wallet = Wallet(user_id=db_user.id, name="Main Wallet", balance=10000, currency="INR")
     db.add(new_wallet)
     await db.commit()
     await db.refresh(db_user)

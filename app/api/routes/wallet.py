@@ -30,11 +30,11 @@ async def lookup_wallet_by_upi(upi_id: str, db: AsyncSession = db_dependency, cu
     if not target_user or not target_user.wallet:
         raise HTTPException(404, detail="UPI ID not found")
         
-    masked_name = f"{target_user.first_name[0]}***"
+    full_name = target_user.first_name
     if target_user.last_name:
-        masked_name += f" {target_user.last_name[0]}***"
+        full_name += f" {target_user.last_name}"
         
     return WalletLookupResponse(
         wallet_id=target_user.wallet.id,
-        masked_name=masked_name
+        masked_name=full_name
     )

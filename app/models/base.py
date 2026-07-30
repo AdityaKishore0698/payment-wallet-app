@@ -40,6 +40,7 @@ class Wallet(Base):
     __tablename__ = 'wallets'
 
     id : Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
+    name : Mapped[str] = mapped_column(String, default='Main Wallet')
     user_id : Mapped[uuid.UUID] = mapped_column(UUID, ForeignKey("users.id"))
     balance : Mapped[Decimal] = mapped_column(Numeric(precision=10, scale=2), CheckConstraint("balance>=0"))
     currency : Mapped[str] = mapped_column(String(3), default='INR')
