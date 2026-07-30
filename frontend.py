@@ -85,6 +85,44 @@ else:
                 
             st.error(f"Error: {error_msg}")
     
+    st.divider()
+
+    st.subheader("Transfer Funds")
+    with st.form("transfer_form"):
+        to_wallet_id = st.text_input("Recipient Wallet ID")
+        transfer_amount = st.number_input("Transfer Amount", min_value=1.0, step=100.0)
+        submitted = st.form_submit_button("Send Funds")
+        
+        if submitted:
+            if not to_wallet_id:
+                st.error("Please enter a Recipient Wallet ID.")
+            else:
+                payload = {
+                    "from_wallet_id": st.session_state.wallet_id,
+                    "to_wallet_id": to_wallet_id,
+                    "amount": transfer_amount
+                }
+                headers = {"Authorization": f"Bearer {st.session_state.token}"}
+                
+                transfer_response = requests.post(
+                    f"{API_URL}/transactions/transfer",
+                    json=payload,
+                    headers=headers
+                )
+                
+                if transfer_response.status_code == 200:
+                    st.success("Transfer successful!")
+                    st.rerun()
+                else:
+                    try:
+                        error_msg = transfer_response.json().get("detail", "Transfer failed")
+                    except requests.exceptions.JSONDecodeError:
+                        error_msg = f"Server Error: {transfer_response.text}"
+                        
+                    st.error(f"Error: {error_msg}")
+
+    st.divider()
+
     # Keep your logout button at the bottom
     if st.button("Logout"):
         st.session_state.token = None
