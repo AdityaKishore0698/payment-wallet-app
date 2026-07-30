@@ -12,7 +12,7 @@ class TransactionType(enum.Enum):
 
 class TransactionStatus(enum.Enum):
     PENDING = "PENDING"
-    COMPLETED = "COMPLETED"
+    SUCCESS = "SUCCESS"
     FAILED = "FAILED"
 
 class TransactionCreate(BaseModel):
@@ -25,6 +25,6 @@ class TransactionResponse(BaseModel):
     amount: Decimal
     type: TransactionType
     reference_id: uuid.UUID | None = None
-    status: TransactionStatus
+    status: str
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)

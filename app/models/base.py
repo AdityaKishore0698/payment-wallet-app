@@ -54,6 +54,6 @@ class Transaction(Base):
     amount : Mapped[Decimal] = mapped_column(Numeric(precision=10, scale=2), CheckConstraint("amount>0"))
     type : Mapped[str] = mapped_column(String, nullable=False)
     reference_id: Mapped[uuid.UUID] = mapped_column(UUID, nullable=True, index=True)
-    status : Mapped[transaction_status] = mapped_column(Enum(transaction_status), default=transaction_status.PENDING)
+    status : Mapped[transaction_status] = mapped_column(Enum(transaction_status), default="PENDING")
     created_at : Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     wallet : Mapped["Wallet"] = relationship(back_populates="transactions")

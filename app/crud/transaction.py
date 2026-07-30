@@ -21,7 +21,7 @@ def create_transaction(db: Session, wallet_id: uuid.UUID, transaction_in: Transa
         if wallet.balance < transaction_in.amount:
             raise ValueError("Insufficient funds")
         wallet.balance -= transaction_in.amount
-    transaction = Transaction(wallet_id=wallet.id, amount=transaction_in.amount, type=transaction_in.type, status=TransactionStatus.COMPLETED)
+    transaction = Transaction(wallet_id=wallet.id, amount=transaction_in.amount, type=transaction_in.type.value, status="SUCCESS")
     db.add(transaction)
     db.commit()
     db.refresh(transaction) 

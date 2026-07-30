@@ -1,0 +1,91 @@
+import os
+
+import jwt
+import requests
+import streamlit as st
+
+os.environ["NO_PROXY"] = "localhost,127.0.0.1"
+
+API_URL = "http://localhost:8000"
+
+if "token" not in st.session_state:
+    st.session_state.token = None
+
+st.title("Digital Wallet APP")
+
+if st.session_state.token is None:
+    st.subheader("Login")
+    email = st.text_input("Email")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        response = requests.post(f"{API_URL}/auth/login", data={"username": email, "password": password})
+        if response.status_code == 200:
+            st.session_state.token = response.json()["access_token"]
+            st.success("Logged in successfully!")
+            st.rerun()
+        else:
+            st.error(f"Login failed: {response.status_code} - {response.text}")
+else:
+    st.header("Welcome to your Wallet!")
+    
+    # 1. Decode the token to find out who is logged in
+    # (We set verify_signature=False because the backend already verifies it!)
+    decoded_token = jwt.decode(st.session_state.token, options={"verify_signature": False})
+    user_id = decoded_token["sub"]
+    
+    # 2. Fetch the wallet data from the backend
+    # We MUST pass the token in the Authorization header!
+    headers = {"Authorization": f"Bearer {st.session_state.token}"}
+    wallet_response = requests.get(f"{API_URL}/wallets/user/{user_id}", headers=headers)
+    
+    if wallet_response.status_code == 200:
+        wallet_data = wallet_response.json()
+        
+        # 3. Display the balance beautifully
+        st.metric(
+            label="Current Balance", 
+            value=f"{wallet_data['balance']} {wallet_data['currency']}"
+        )
+        
+        # Save the wallet_id in session state for the next task (Transactions!)
+        st.session_state.wallet_id = wallet_data["id"]
+    else:
+        st.error("Could not fetch wallet data.")
+    
+    st.divider() # Draws a nice horizontal line
+
+    st.subheader("Make a Transaction")
+    
+    # 1. The Input Fields
+    amount = st.number_input("Amount", min_value=1.0, step=100.0)
+    tx_type = st.radio("Transaction Type", ["CREDIT", "DEBIT"])
+    
+    # 2. The Submit Button
+    if st.button("Submit Transaction"):
+        # We send JSON data for this endpoint, and our Token in the headers!
+        payload = {"amount": amount, "type": tx_type}
+        headers = {"Authorization": f"Bearer {st.session_state.token}"}
+        
+        # Make the POST request using the wallet_id we saved earlier
+        tx_response = requests.post(
+            f"{API_URL}/transactions/{st.session_state.wallet_id}",
+            json=payload,
+            headers=headers
+        )
+        
+        # 3. Handle the Result
+        if tx_response.status_code == 200:
+            st.success("Transaction successful!")
+            st.rerun() # Refresh the page to see the new balance!
+        else:
+            try:
+                error_msg = tx_response.json().get("detail", "Transaction failed")
+            except requests.exceptions.JSONDecodeError:
+                error_msg = f"Server Error: {tx_response.text}"
+                
+            st.error(f"Error: {error_msg}")
+    
+    # Keep your logout button at the bottom
+    if st.button("Logout"):
+        st.session_state.token = None
+        st.rerun()
