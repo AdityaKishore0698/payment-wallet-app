@@ -14,17 +14,49 @@ if "token" not in st.session_state:
 st.title("Digital Wallet APP")
 
 if st.session_state.token is None:
-    st.subheader("Login")
-    email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
-    if st.button("Login"):
-        response = requests.post(f"{API_URL}/auth/login", data={"username": email, "password": password})
-        if response.status_code == 200:
-            st.session_state.token = response.json()["access_token"]
-            st.success("Logged in successfully!")
-            st.rerun()
-        else:
-            st.error(f"Login failed: {response.status_code} - {response.text}")
+    tab1, tab2 = st.tabs(["Login", "Register"])
+    
+    with tab1:
+        st.subheader("Login")
+        email = st.text_input("Email", key="login_email")
+        password = st.text_input("Password", type="password", key="login_password")
+        if st.button("Login"):
+            response = requests.post(f"{API_URL}/auth/login", data={"username": email, "password": password})
+            if response.status_code == 200:
+                st.session_state.token = response.json()["access_token"]
+                st.success("Logged in successfully!")
+                st.rerun()
+            else:
+                st.error(f"Login failed: {response.status_code} - {response.text}")
+                
+    with tab2:
+        st.subheader("Register")
+        with st.form("register_form"):
+            reg_first_name = st.text_input("First Name")
+            reg_last_name = st.text_input("Last Name")
+            reg_email = st.text_input("Email")
+            reg_password = st.text_input("Password", type="password")
+            
+            if st.form_submit_button("Register"):
+                if not reg_first_name or not reg_email or not reg_password:
+                    st.error("Please fill in all required fields.")
+                else:
+                    reg_payload = {
+                        "first_name": reg_first_name,
+                        "last_name": reg_last_name,
+                        "email": reg_email,
+                        "password": reg_password
+                    }
+                    reg_response = requests.post(f"{API_URL}/users/", json=reg_payload)
+                    if reg_response.status_code == 200:
+                        data = reg_response.json()
+                        st.success(f"Registered successfully! Your UPI ID is {data['upi_id']}. You can now login in the Login tab.")
+                    else:
+                        try:
+                            err = reg_response.json().get("detail", "Failed")
+                        except:
+                            err = reg_response.text
+                        st.error(f"Registration failed: {err}")
 else:
     st.header("Welcome to your Wallet!")
     
