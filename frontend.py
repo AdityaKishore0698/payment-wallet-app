@@ -90,7 +90,7 @@ else:
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     
     # Navigation
-    page = st.sidebar.radio("Navigation", ["Dashboard", "Add Funds", "Transfer Funds", "Transaction History"])
+    page = st.sidebar.radio("Navigation", ["Dashboard", "Add Funds", "Transfer Funds", "Transaction History", "Settings"])
     
     if st.sidebar.button("Logout"):
         st.session_state.token = None
@@ -116,7 +116,53 @@ else:
     if page == "Dashboard":
         st.header("Dashboard")
         st.write(f"Welcome back, **{user_data['first_name']}**!")
-        st.info("Use the sidebar to navigate through your wallet features.")
+        
+        st.markdown(
+            """
+            > **Digital Wallet APP** is your all-in-one financial hub. 
+            > 
+            > Effortlessly manage your finances with our lightning-fast P2P transfer network, 
+            > track your income and expenses in real-time, and stay secure with enterprise-grade encryption.
+            > Top up your balance from your bank and transfer funds to friends instantly using their UPI ID!
+            """
+        )
+        
+    elif page == "Settings":
+        st.header("Settings")
+        
+        st.subheader("Change Password")
+        with st.form("change_password_form"):
+            old_pass = st.text_input("Current Password", type="password")
+            new_pass = st.text_input("New Password", type="password")
+            if st.form_submit_button("Update Password"):
+                res = requests.post(
+                    f"{API_URL}/auth/change-password",
+                    json={"old_password": old_pass, "new_password": new_pass},
+                    headers=headers
+                )
+                if res.status_code == 200:
+                    st.success("Password updated successfully!")
+                else:
+                    st.error(res.json().get("detail", "Failed to update password."))
+                    
+        st.divider()
+        
+        st.subheader("Danger Zone")
+        with st.expander("Delete Account"):
+            st.warning("⚠️ **WARNING:** This action is irreversible. It will permanently delete your account, your wallet, and all your transaction history.")
+            confirm_email = st.text_input("Type your email address to confirm deletion")
+            if st.button("Permanently Delete My Account", type="primary"):
+                if confirm_email == user_data['email']:
+                    del_res = requests.delete(f"{API_URL}/users/me", headers=headers)
+                    if del_res.status_code == 200:
+                        st.session_state.token = None
+                        st.session_state.history_loaded = False
+                        st.success("Account deleted successfully.")
+                        st.rerun()
+                    else:
+                        st.error("Failed to delete account.")
+                else:
+                    st.error("Email does not match. Deletion cancelled.")
         
     elif page == "Add Funds":
         st.header("Add Funds from Bank")

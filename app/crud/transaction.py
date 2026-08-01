@@ -57,7 +57,7 @@ async def get_transactions_by_wallet(db: AsyncSession, wallet_id: uuid.UUID, cur
     
     enriched_txs = []
     for tx in transactions:
-        counterparty_name = None
+        counterparty_name = "System" # Fallback if no reference_id (like adding funds)
         if tx.reference_id:
             stmt_other = select(User.first_name, User.last_name).join(Wallet, User.id == Wallet.user_id).join(Transaction, Wallet.id == Transaction.wallet_id).where(
                 Transaction.reference_id == tx.reference_id,
@@ -68,6 +68,8 @@ async def get_transactions_by_wallet(db: AsyncSession, wallet_id: uuid.UUID, cur
             if row:
                 first, last = row
                 counterparty_name = f"{first} {last}" if last else first
+            else:
+                counterparty_name = "Deleted User"
         
         setattr(tx, 'counterparty_name', counterparty_name)
         enriched_txs.append(tx)

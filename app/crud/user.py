@@ -44,3 +44,22 @@ async def get_user_by_upi_id(db: AsyncSession, upi_id: str):
 async def get_user_by_email(db: AsyncSession, email: str):
     stmt = select(User).where(User.email == email)
     return await db.scalar(stmt)
+
+async def delete_user_data(db: AsyncSession, user: User):
+    from sqlalchemy import delete
+    from app.models.base import Transaction
+    
+    # User might have multiple wallets, but right now there's just one relationship 'wallet'
+    # Wait, the relationship is `wallet : Mapped["Wallet"]`, but actually the database can have multiple wallets.
+    # It's better to delete wallets and transactions by user_id
+    
+    # Delete transactions for all wallets owned by this user
+    wallets_stmt = select(Wallet.id).where(Wallet.user_id == user.id)
+    wallet_ids = (await db.scalars(wallets_stmt)).all()
+    
+    if wallet_ids:
+        await db.execute(delete(Transaction).where(Transaction.wallet_id.in_(wallet_ids)))
+        await db.execute(delete(Wallet).where(Wallet.id.in_(wallet_ids)))
+        
+    await db.execute(delete(User).where(User.id == user.id))
+    await db.commit()

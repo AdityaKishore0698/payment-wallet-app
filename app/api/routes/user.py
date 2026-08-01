@@ -5,8 +5,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.crud.user import create_user, get_user_by_id
+from app.crud.user import create_user, get_user_by_id, delete_user_data
 from app.schemas.user import UserCreate, UserResponse
+from app.models.base import User
+from app.api.dependencies import get_current_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -19,6 +21,11 @@ async def register_user(user_in: UserCreate, db: AsyncSession = db_dependency):
     except IntegrityError:
         await db.rollback()
         raise HTTPException(400, detail="Email already registered")
+
+@router.delete("/me")
+async def delete_my_account(db: AsyncSession = db_dependency, current_user: User = Depends(get_current_user)):
+    await delete_user_data(db, current_user)
+    return {"message": "User account and all associated data deleted successfully"}
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: uuid.UUID, db: AsyncSession = db_dependency):
