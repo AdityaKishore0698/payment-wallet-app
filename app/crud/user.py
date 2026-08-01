@@ -40,3 +40,7 @@ async def authentic_user(db: AsyncSession, email: str, password: str):
 async def get_user_by_upi_id(db: AsyncSession, upi_id: str):
     stmt = select(User).options(joinedload(User.wallet)).where(User.upi_id == upi_id)
     return await db.scalar(stmt)
+
+async def get_user_by_email(db: AsyncSession, email: str):
+    stmt = select(User).where(User.email == email)
+    return await db.scalar(stmt)
