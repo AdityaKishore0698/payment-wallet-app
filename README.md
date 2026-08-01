@@ -28,8 +28,8 @@ graph TD
         
         Streamlit -->|REST API| FastAPI
         
-        FastAPI <-->|asyncpg (Async)| DB[(PostgreSQL)]
-        FastAPI -->|Message Queue| Redis[Redis Broker]
+        FastAPI -->|asyncpg| DB[(PostgreSQL)]
+        FastAPI -->|Message Queue| Redis[(Redis Broker)]
         Redis --> Celery[Celery Background Worker]
         Celery -->|Email / Heavy Tasks| External([External Services])
     end
