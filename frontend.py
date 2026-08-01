@@ -14,7 +14,7 @@ if "token" not in st.session_state:
 st.title("Digital Wallet APP")
 
 if st.session_state.token is None:
-    tab1, tab2 = st.tabs(["Login", "Register"])
+    tab1, tab2, tab3 = st.tabs(["Login", "Register", "Forgot Password"])
     
     with tab1:
         st.subheader("Login")
@@ -58,185 +58,180 @@ if st.session_state.token is None:
                         except:
                             err = reg_response.text
                         st.error(f"Registration failed: {err}")
+                        
+    with tab3:
+        st.subheader("Recover Password")
+        recovery_email = st.text_input("Email address", key="recover_email")
+        if st.button("Send Recovery Token"):
+            res = requests.post(f"{API_URL}/auth/recover", json={"email": recovery_email})
+            if res.status_code == 200:
+                st.success(res.json()["message"])
+                if "demo_token" in res.json():
+                    st.info(f"DEMO MODE: Your reset token is: {res.json()['demo_token']}")
+            else:
+                st.error("Failed to initiate recovery.")
+                
+        st.divider()
+        st.subheader("Reset Password")
+        reset_token = st.text_input("Recovery Token")
+        new_password = st.text_input("New Password", type="password")
+        if st.button("Reset Password"):
+            res = requests.post(f"{API_URL}/auth/reset-password", json={"token": reset_token, "new_password": new_password})
+            if res.status_code == 200:
+                st.success("Password reset successfully! You can now login.")
+            else:
+                st.error("Failed to reset password. Invalid or expired token.")
 else:
-    st.header("Welcome to your Wallet!")
+    st.sidebar.header("Welcome to your Wallet!")
     
-    # 1. Decode the token to find out who is logged in
-    # (We set verify_signature=False because the backend already verifies it!)
+    # Decode token
     decoded_token = jwt.decode(st.session_state.token, options={"verify_signature": False})
     user_id = decoded_token["sub"]
-    
-    # Fetch user data to display UPI ID
-    user_response = requests.get(f"{API_URL}/users/{user_id}")
-    if user_response.status_code == 200:
-        user_data = user_response.json()
-        st.markdown(f"**Your UPI ID:** `{user_data['upi_id']}`")
-    
-    # 2. Fetch the wallet data from the backend
-    # We MUST pass the token in the Authorization header!
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
-    wallet_response = requests.get(f"{API_URL}/wallets/user/{user_id}", headers=headers)
     
-    if wallet_response.status_code == 200:
-        wallet_data = wallet_response.json()
-        
-        st.subheader(f"👛 {wallet_data.get('name', 'Main Wallet')}")
-        
-        # 3. Display the balance beautifully
-        st.metric(
-            label="Current Balance", 
-            value=f"₹{wallet_data['balance']}"
-        )
-        
-        # Save the wallet_id in session state for the next task (Transactions!)
-        st.session_state.wallet_id = wallet_data["id"]
-    else:
-        st.error("Could not fetch wallet data.")
+    # Navigation
+    page = st.sidebar.radio("Navigation", ["Dashboard", "Add Funds", "Transfer Funds", "Transaction History"])
     
-    st.divider() # Draws a nice horizontal line
-
-    st.subheader("Add Funds from Bank")
-    
-    # 1. The Input Fields
-    amount = st.number_input("Amount to add", min_value=1.0, max_value=50000.0, step=100.0)
-    
-    # 2. The Submit Button
-    if st.button("Add Funds"):
-        payload = {"amount": amount}
-        headers = {"Authorization": f"Bearer {st.session_state.token}"}
-        
-        tx_response = requests.post(
-            f"{API_URL}/transactions/add_funds/{st.session_state.wallet_id}",
-            json=payload,
-            headers=headers
-        )
-        
-        if tx_response.status_code == 200:
-            st.success(f"Successfully added ₹{amount} to your wallet!")
-            st.session_state.history_loaded = False
-            st.rerun()
-        else:
-            try:
-                error_msg = tx_response.json().get("detail", "Transaction failed")
-            except requests.exceptions.JSONDecodeError:
-                error_msg = f"Server Error: {tx_response.text}"
-                
-            st.error(f"Error: {error_msg}")
-    
-    st.divider()
-
-    st.subheader("Transfer Funds")
-    
-    contacts_response = requests.get(
-        f"{API_URL}/transactions/{st.session_state.wallet_id}/contacts",
-        headers=headers
-    )
-    contacts = contacts_response.json() if contacts_response.status_code == 200 else []
-    
-    if contacts:
-        selected_contact = st.pills("Recent Contacts", contacts)
-    else:
-        selected_contact = None
-
-    default_upi = selected_contact if selected_contact else ""
-    upi_id = st.text_input("Recipient UPI ID", value=default_upi)
-
-    verified_wallet_id = None
-    if upi_id:
-        lookup_res = requests.get(f"{API_URL}/wallets/lookup/{upi_id}", headers=headers)
-        if lookup_res.status_code == 200:
-            data = lookup_res.json()
-            st.success(f"✅ Verified: {data['masked_name']}")
-            verified_wallet_id = data['wallet_id']
-        else:
-            st.error("❌ UPI ID not found.")
-
-    with st.form("transfer_form"):
-        transfer_amount = st.number_input("Transfer Amount", min_value=1.0, step=100.0)
-        submitted = st.form_submit_button("Send Funds")
-        
-        if submitted:
-            if not verified_wallet_id:
-                st.error("Please enter a valid Recipient UPI ID.")
-            else:
-                payload = {
-                    "from_wallet_id": st.session_state.wallet_id,
-                    "to_wallet_id": verified_wallet_id,
-                    "amount": transfer_amount
-                }
-                
-                transfer_response = requests.post(
-                    f"{API_URL}/transactions/transfer",
-                    json=payload,
-                    headers=headers
-                )
-                
-                if transfer_response.status_code == 200:
-                    txs = transfer_response.json()
-                    st.success(f"✅ Transferred ₹{transfer_amount} to {data['masked_name']} (Ref: {txs[0]['reference_id']})")
-                    st.session_state.history_loaded = False
-                else:
-                    try:
-                        error_msg = transfer_response.json().get("detail", "Transfer failed")
-                    except requests.exceptions.JSONDecodeError:
-                        error_msg = f"Server Error: {transfer_response.text}"
-                        
-                    st.error(f"Error: {error_msg}")
-
-    st.divider()
-
-    st.subheader("Transaction History")
-    
-    if "history_loaded" not in st.session_state:
-        st.session_state.history_loaded = False
-        st.session_state.history_data = []
-        st.session_state.next_cursor = None
-
-    if not st.session_state.history_loaded:
-        history_response = requests.get(
-            f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
-            headers=headers,
-            params={"limit": 10}
-        )
-        if history_response.status_code == 200:
-            history = history_response.json()
-            st.session_state.history_data = history["data"]
-            st.session_state.next_cursor = history.get("next_cursor")
-            st.session_state.history_loaded = True
-        else:
-            st.error("Failed to load history.")
-
-    if st.session_state.history_data:
-        import pandas as pd
-        df = pd.DataFrame(st.session_state.history_data)
-        
-        # Reorder and rename columns for a better view
-        cols = ["created_at", "type", "amount", "counterparty_name", "status", "reference_id"]
-        df = df[[c for c in cols if c in df.columns]]
-        df.rename(columns={"counterparty_name": "Counterparty"}, inplace=True)
-        
-        st.dataframe(df)
-        
-        if st.session_state.next_cursor:
-            if st.button("Load More"):
-                more_response = requests.get(
-                    f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
-                    headers=headers,
-                    params={"limit": 10, "cursor": st.session_state.next_cursor}
-                )
-                if more_response.status_code == 200:
-                    more_data = more_response.json()
-                    st.session_state.history_data.extend(more_data["data"])
-                    st.session_state.next_cursor = more_data.get("next_cursor")
-                    st.rerun()
-                else:
-                    st.error("Failed to load more history.")
-    else:
-        st.info("No transactions found.")
-
-    st.divider()
-
-    if st.button("Logout"):
+    if st.sidebar.button("Logout"):
         st.session_state.token = None
         st.session_state.history_loaded = False
         st.rerun()
+        
+    st.sidebar.divider()
+    
+    user_response = requests.get(f"{API_URL}/users/{user_id}")
+    if user_response.status_code == 200:
+        user_data = user_response.json()
+        st.sidebar.markdown(f"**Your UPI ID:** `{user_data['upi_id']}`")
+        
+    wallet_response = requests.get(f"{API_URL}/wallets/user/{user_id}", headers=headers)
+    if wallet_response.status_code == 200:
+        wallet_data = wallet_response.json()
+        st.session_state.wallet_id = wallet_data["id"]
+        st.sidebar.metric(label="Current Balance", value=f"₹{wallet_data['balance']}")
+    else:
+        st.sidebar.error("Could not fetch wallet data.")
+        
+    # --- Page Content ---
+    if page == "Dashboard":
+        st.header("Dashboard")
+        st.write(f"Welcome back, **{user_data['first_name']}**!")
+        st.info("Use the sidebar to navigate through your wallet features.")
+        
+    elif page == "Add Funds":
+        st.header("Add Funds from Bank")
+        amount = st.number_input("Amount to add", min_value=1.0, max_value=50000.0, step=100.0)
+        if st.button("Add Funds"):
+            tx_response = requests.post(
+                f"{API_URL}/transactions/add_funds/{st.session_state.wallet_id}",
+                json={"amount": amount},
+                headers=headers
+            )
+            if tx_response.status_code == 200:
+                st.success(f"Successfully added ₹{amount} to your wallet!")
+                st.session_state.history_loaded = False
+                st.rerun()
+            else:
+                try:
+                    error_msg = tx_response.json().get("detail", "Transaction failed")
+                except requests.exceptions.JSONDecodeError:
+                    error_msg = f"Server Error: {tx_response.text}"
+                st.error(f"Error: {error_msg}")
+                
+    elif page == "Transfer Funds":
+        st.header("Transfer Funds")
+        contacts_response = requests.get(
+            f"{API_URL}/transactions/{st.session_state.wallet_id}/contacts",
+            headers=headers
+        )
+        contacts = contacts_response.json() if contacts_response.status_code == 200 else []
+        
+        selected_contact = st.pills("Recent Contacts", contacts) if contacts else None
+        default_upi = selected_contact if selected_contact else ""
+        upi_id = st.text_input("Recipient UPI ID", value=default_upi)
+
+        verified_wallet_id = None
+        if upi_id:
+            lookup_res = requests.get(f"{API_URL}/wallets/lookup/{upi_id}", headers=headers)
+            if lookup_res.status_code == 200:
+                data = lookup_res.json()
+                st.success(f"✅ Verified: {data['masked_name']}")
+                verified_wallet_id = data['wallet_id']
+            else:
+                st.error("❌ UPI ID not found.")
+
+        with st.form("transfer_form"):
+            transfer_amount = st.number_input("Transfer Amount", min_value=1.0, step=100.0)
+            submitted = st.form_submit_button("Send Funds")
+            if submitted:
+                if not verified_wallet_id:
+                    st.error("Please enter a valid Recipient UPI ID.")
+                else:
+                    payload = {
+                        "from_wallet_id": st.session_state.wallet_id,
+                        "to_wallet_id": verified_wallet_id,
+                        "amount": transfer_amount
+                    }
+                    transfer_response = requests.post(
+                        f"{API_URL}/transactions/transfer",
+                        json=payload,
+                        headers=headers
+                    )
+                    if transfer_response.status_code == 200:
+                        txs = transfer_response.json()
+                        st.success(f"✅ Transferred ₹{transfer_amount} to {data['masked_name']} (Ref: {txs[0]['reference_id']})")
+                        st.session_state.history_loaded = False
+                    else:
+                        try:
+                            error_msg = transfer_response.json().get("detail", "Transfer failed")
+                        except requests.exceptions.JSONDecodeError:
+                            error_msg = f"Server Error: {transfer_response.text}"
+                        st.error(f"Error: {error_msg}")
+                        
+    elif page == "Transaction History":
+        st.header("Transaction History")
+        
+        if "history_loaded" not in st.session_state:
+            st.session_state.history_loaded = False
+            st.session_state.history_data = []
+            st.session_state.next_cursor = None
+
+        if not st.session_state.history_loaded:
+            history_response = requests.get(
+                f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
+                headers=headers,
+                params={"limit": 10}
+            )
+            if history_response.status_code == 200:
+                history = history_response.json()
+                st.session_state.history_data = history["data"]
+                st.session_state.next_cursor = history.get("next_cursor")
+                st.session_state.history_loaded = True
+            else:
+                st.error("Failed to load history.")
+
+        if st.session_state.history_data:
+            import pandas as pd
+            df = pd.DataFrame(st.session_state.history_data)
+            cols = ["created_at", "type", "amount", "counterparty_name", "status", "reference_id"]
+            df = df[[c for c in cols if c in df.columns]]
+            df.rename(columns={"counterparty_name": "Counterparty"}, inplace=True)
+            
+            st.dataframe(df, use_container_width=True)
+            
+            if st.session_state.next_cursor:
+                if st.button("Load More"):
+                    more_response = requests.get(
+                        f"{API_URL}/transactions/{st.session_state.wallet_id}/history",
+                        headers=headers,
+                        params={"limit": 10, "cursor": st.session_state.next_cursor}
+                    )
+                    if more_response.status_code == 200:
+                        more_data = more_response.json()
+                        st.session_state.history_data.extend(more_data["data"])
+                        st.session_state.next_cursor = more_data.get("next_cursor")
+                        st.rerun()
+                    else:
+                        st.error("Failed to load more history.")
+        else:
+            st.info("No transactions found.")

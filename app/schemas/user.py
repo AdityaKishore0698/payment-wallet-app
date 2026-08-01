@@ -19,3 +19,10 @@ class UserResponse(BaseModel):
     wallet_id: uuid.UUID | None = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+class RecoverRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
