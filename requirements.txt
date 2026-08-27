@@ -27,10 +27,6 @@ uvicorn==0.39.0
 wheel==0.47.0
 greenlet==3.5.4
 
-streamlit
-requests
-pandas
-
 pytest
 pytest-asyncio
 httpx
