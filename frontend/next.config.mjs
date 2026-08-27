@@ -1,13 +1,16 @@
 /** @type {import('next').NextConfig} */
 
-// During local development the browser talks to the Next.js server, which
-// proxies /api/* to the FastAPI backend. In production, Nginx handles /api/
-// directly and this rewrite is never hit.
+// Local development: the browser calls the Next.js server, which proxies
+// /api/* to the FastAPI backend (so no CORS setup is needed for `npm run dev`).
+//
+// Hosted (Vercel): NEXT_PUBLIC_API_BASE is set to the absolute Render API URL,
+// requests go straight there, and this rewrite is disabled.
 const API_PROXY_TARGET = process.env.API_PROXY_TARGET || "http://localhost:8000";
 
 const nextConfig = {
   output: "standalone",
   async rewrites() {
+    if (process.env.VERCEL) return [];
     return [
       {
         source: "/api/:path*",
