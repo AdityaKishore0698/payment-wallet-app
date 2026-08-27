@@ -1,0 +1,20 @@
+/** @type {import('next').NextConfig} */
+
+// During local development the browser talks to the Next.js server, which
+// proxies /api/* to the FastAPI backend. In production, Nginx handles /api/
+// directly and this rewrite is never hit.
+const API_PROXY_TARGET = process.env.API_PROXY_TARGET || "http://localhost:8000";
+
+const nextConfig = {
+  output: "standalone",
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${API_PROXY_TARGET}/:path*`,
+      },
+    ];
+  },
+};
+
+export default nextConfig;
