@@ -16,22 +16,33 @@ A highly scalable, asynchronous digital wallet application that supports secure 
 
 ## System Architecture
 
-Our application is built as a highly robust, multi-container architecture orchestrated by Docker Compose:
+**Production** runs on a distributed free-tier stack with GitHub-driven
+continuous deployment (see [`deployment_guide.md`](deployment_guide.md)):
 
 ```mermaid
 graph TD
-    Client([User Browser]) -->|HTTP :80| Nginx[Nginx Reverse Proxy]
-    
+    User["User browser"] -->|HTTPS| Vercel["Vercel: Next.js frontend"]
+    Vercel -->|"HTTPS REST API"| Render["Render: FastAPI web service"]
+    Render --- Worker["Celery worker (same service via honcho)"]
+    Render -->|"TLS psycopg"| DB[("Neon / Supabase: PostgreSQL")]
+    Worker -->|"TLS rediss"| Redis[("Upstash: serverless Redis")]
+    Render -->|"TLS rediss"| Redis
+```
+
+**Local development** uses the Docker Compose stack — Nginx fronts the Next.js
+frontend on `/` and the FastAPI backend on `/api`, with Postgres, Redis, and a
+Celery worker as sibling containers:
+
+```mermaid
+graph TD
+    Client(["User Browser"]) -->|HTTP :80| Nginx["Nginx Reverse Proxy"]
+
     subgraph Internal Docker Network
-        Nginx -->|SSR / static :3000| NextJS[Next.js Frontend]
-        Nginx -->|REST API /api :8000| FastAPI[FastAPI Backend]
-        
-        NextJS -->|REST API| FastAPI
-        
-        FastAPI -->|asyncpg| DB[(PostgreSQL)]
-        FastAPI -->|Message Queue| Redis[(Redis Broker)]
-        Redis --> Celery[Celery Background Worker]
-        Celery -->|Email / Heavy Tasks| External([External Services])
+        Nginx -->|"SSR / static :3000"| NextJS["Next.js Frontend"]
+        Nginx -->|"REST API /api :8000"| FastAPI["FastAPI Backend"]
+        FastAPI -->|psycopg| DB[("PostgreSQL")]
+        FastAPI -->|"Redis broker"| Redis[("Redis")]
+        Redis --> Celery["Celery Worker"]
     end
 ```
 
@@ -60,14 +71,16 @@ sequenceDiagram
 - **UPI-Style Discovery:** Discover receivers safely using a `username@wallet` style ID without exposing personal data.
 - **Deadlock-Free P2P Transfers:** Guaranteed safe concurrent transactions via deterministic database locking.
 - **Cursor Pagination:** High-performance Keyset pagination for infinite-scroll transaction histories.
-- **Service-Oriented Architecture:** Includes Redis caching and Celery for asynchronous background task processing.
-- **Containerized:** Fully Dockerized with Docker Compose for seamless deployment behind an Nginx Load Balancer.
+- **Service-Oriented Architecture:** Includes Redis and Celery for asynchronous background task processing.
+- **Containerized local dev:** Full stack via Docker Compose behind Nginx.
+- **Distributed free-tier deploy:** Vercel + Render + Neon + Upstash, CI/CD from GitHub.
 
 ## Tech Stack
-- **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0, asyncpg, Celery
+- **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0, psycopg 3 (async), Celery
 - **Database / Cache:** PostgreSQL 15, Redis
 - **Frontend:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS
-- **Infrastructure:** Docker, Nginx
+- **Local infra:** Docker, Nginx
+- **Hosting:** Vercel (frontend), Render (API + worker), Neon/Supabase (Postgres), Upstash (Redis)
 
 ## Local Setup
 
@@ -87,4 +100,11 @@ npm run dev                  # http://localhost:3000
 The dev server proxies `/api/*` to `API_PROXY_TARGET` (default `http://localhost:8000`).
 
 ## Deployment
-See `deploy.sh` for AWS EC2 / Ubuntu deployment instructions.
+Production is a distributed free-tier stack (Vercel, Render, Neon, Upstash) with
+continuous deployment from GitHub. Full step-by-step instructions:
+[`deployment_guide.md`](deployment_guide.md).
+
+- Backend config is entirely environment-driven: `DATABASE_URL`, `REDIS_URL`,
+  `FRONTEND_URL`, `SECRET_KEY` (see [`.env.example`](.env.example)).
+- `render.yaml` + `Procfile` run the API and Celery worker on one free Render
+  Web Service via `honcho`.

@@ -5,6 +5,70 @@ context survives across sessions. Newest entries at the top.
 
 ---
 
+## Phase 2 — Deployment migration: AWS EC2 → distributed free tier
+
+**Branch:** `feature/nextjs-frontend` (continues from Phase 1)
+**Status:** code + config + docs done; local Docker stack re-verified. Nothing
+deployed to the cloud yet — that's a manual, account-gated set of steps in
+`deployment_guide.md`.
+
+### Goal
+Move off the single EC2 box to: **Vercel** (Next.js frontend), **Render**
+(FastAPI + Celery), **Neon/Supabase** (Postgres), **Upstash** (Redis). Drive
+deploys from GitHub, delete `deploy.sh`.
+
+### What was done
+
+**Backend — now fully environment-driven**
+- `app/core/database.py` — `_normalize_database_url()` upgrades a plain
+  `postgres://` / `postgresql://` string (what Neon/Supabase/Render hand out) to
+  `postgresql+psycopg_async://`. Added `pool_pre_ping=True` for free-tier DBs
+  that drop idle connections. Local compose URL (already `+psycopg_async`) passes
+  through untouched.
+- `app/worker.py` — reads `REDIS_URL`; when it's `rediss://` (Upstash TLS) sets
+  `broker_use_ssl` / `redis_backend_use_ssl` (CERT_REQUIRED, or CERT_NONE if the
+  URL says so). Added `broker_connection_retry_on_startup = True`. Removed the
+  unused `asyncio` import.
+- `app/main.py` — CORS now builds its allow-list from `FRONTEND_URL` (+ always
+  localhost:3000) and an `allow_origin_regex` defaulting to
+  `https://.*\.vercel\.app` (Vercel preview deploys); override via
+  `FRONTEND_URL_REGEX`. Replaces the old `CORS_ORIGINS` var.
+- `app/core/security.py` — `SECRET_KEY` from env (dev fallback kept);
+  `ACCESS_TOKEN_EXPIRE_MINUTES` from env.
+
+**Deploy config (new files)**
+- `render.yaml` — Render Blueprint: one **free** Web Service `wallet-api`,
+  `startCommand: honcho start`, `healthCheckPath: /openapi.json`,
+  `SECRET_KEY` auto-generated, `DATABASE_URL`/`REDIS_URL`/`FRONTEND_URL` as
+  dashboard secrets, `autoDeploy: true` on `main`.
+- `Procfile` — `web:` uvicorn + `worker:` celery. `honcho` runs both in the one
+  free Render service (Render's dedicated worker type is paid — documented as
+  "Option B"). `honcho` added to `requirements.txt`.
+- `.env.example` (repo root) — backend env vars; `!.env.example` added to root
+  `.gitignore`.
+- `frontend/next.config.mjs` — the `/api/*` dev proxy rewrite is skipped when
+  `process.env.VERCEL` is set (prod calls the absolute Render URL directly).
+- `frontend/.env.example` — documents `NEXT_PUBLIC_API_BASE` = absolute Render
+  URL for Vercel.
+
+**Docs**
+- `deployment_guide.md` — full step-by-step: Neon → Upstash → Render → Vercel →
+  wire CORS, env-var reference tables, CI/CD behaviour, troubleshooting.
+- `README.md` — split architecture into "Production" (new distributed diagram)
+  and "Local development" (compose diagram); deployment section points to the
+  guide.
+- Deleted `deploy.sh`.
+
+### Not done / follow-ups
+- No live cloud deployment performed (needs the user's accounts).
+- `render.yaml` `branch: main` — Phase 1/2 work is on `feature/nextjs-frontend`;
+  merge to `main` before the first Render deploy, or change the branch.
+- In-memory reset tokens (`app/api/routes/auth.py`) still lost on the free
+  service's frequent restarts — fine given the demo_token fallback.
+- Backend `pytest` suite still has the pre-existing failures noted in Phase 1.
+
+---
+
 ## Phase 1 — Frontend migration: Streamlit → Next.js
 
 **Branch:** `feature/nextjs-frontend` (off `feature/async-and-scale`)
