@@ -1,6 +1,6 @@
 # Digital Payment Wallet
 
-A highly scalable, asynchronous digital wallet application that supports secure peer-to-peer (P2P) transfers, user authentication, and deposit management. Built with FastAPI, PostgreSQL, and Streamlit, this app ensures safe financial transactions using strict row-level locking strategies to prevent race conditions and deadlocks.
+A highly scalable, asynchronous digital wallet application that supports secure peer-to-peer (P2P) transfers, user authentication, and deposit management. Built with FastAPI, PostgreSQL, and a Next.js (React) frontend, this app ensures safe financial transactions using strict row-level locking strategies to prevent race conditions and deadlocks.
 
 ## Screenshots
 
@@ -23,10 +23,10 @@ graph TD
     Client([User Browser]) -->|HTTP :80| Nginx[Nginx Reverse Proxy]
     
     subgraph Internal Docker Network
-        Nginx -->|WebSockets :8501| Streamlit[Streamlit Frontend]
-        Nginx -->|REST API :8000| FastAPI[FastAPI Backend]
+        Nginx -->|SSR / static :3000| NextJS[Next.js Frontend]
+        Nginx -->|REST API /api :8000| FastAPI[FastAPI Backend]
         
-        Streamlit -->|REST API| FastAPI
+        NextJS -->|REST API| FastAPI
         
         FastAPI -->|asyncpg| DB[(PostgreSQL)]
         FastAPI -->|Message Queue| Redis[(Redis Broker)]
@@ -66,14 +66,25 @@ sequenceDiagram
 ## Tech Stack
 - **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0, asyncpg, Celery
 - **Database / Cache:** PostgreSQL 15, Redis
-- **Frontend:** Streamlit, Pandas
+- **Frontend:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS
 - **Infrastructure:** Docker, Nginx
 
 ## Local Setup
+
+### With Docker (full stack)
 1. Clone the repository.
 2. Run `docker compose up -d --build`.
-3. The frontend is accessible at `http://localhost:8501`.
+3. Open the app at `http://localhost` (Nginx serves the frontend on `/` and the API on `/api`).
 4. The API (with Swagger Docs) is at `http://localhost:8000/docs`.
+
+### Frontend only (development)
+```bash
+cd frontend
+cp .env.example .env.local   # optional; defaults work against a local API on :8000
+npm install
+npm run dev                  # http://localhost:3000
+```
+The dev server proxies `/api/*` to `API_PROXY_TARGET` (default `http://localhost:8000`).
 
 ## Deployment
 See `deploy.sh` for AWS EC2 / Ubuntu deployment instructions.
