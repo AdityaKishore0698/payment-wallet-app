@@ -33,3 +33,7 @@ httpx
 
 celery
 redis
+
+# Runs the web + Celery worker as one process on a single Render free service
+# (see Procfile). Not used by Docker Compose, which runs them separately.
+honcho

@@ -16,15 +16,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Digital Wallet API", version="1.0.0", lifespan=lifespan)
 
-# In production the Next.js frontend is served same-origin via Nginx (/api),
-# so CORS is not strictly required. It is enabled here so the frontend can also
-# run standalone during local development (e.g. `npm run dev` on :3000).
-_cors_origins = os.getenv(
-    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
-).split(",")
+# The hosted frontend (Vercel) and API (Render) live on different origins, so
+# CORS must allow the deployed frontend. FRONTEND_URL is the canonical
+# production origin; local dev origins are always allowed. Vercel preview
+# deployments get unique URLs — allow them via the *.vercel.app regex unless
+# FRONTEND_URL_REGEX overrides it.
+_allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+_frontend_url = os.getenv("FRONTEND_URL")
+if _frontend_url:
+    _allowed_origins.append(_frontend_url.rstrip("/"))
+
+_origin_regex = os.getenv("FRONTEND_URL_REGEX", r"https://.*\.vercel\.app")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _cors_origins if o.strip()],
+    allow_origins=_allowed_origins,
+    allow_origin_regex=_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
