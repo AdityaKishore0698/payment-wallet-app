@@ -16,17 +16,17 @@ A highly scalable, asynchronous digital wallet application that supports secure 
 
 ## System Architecture
 
-**Production** runs on a distributed free-tier stack with GitHub-driven
-continuous deployment (see [`deployment_guide.md`](deployment_guide.md)):
+**Production** runs on a zero-cost managed stack with GitHub-driven continuous
+deployment (see [`DEPLOYMENT.md`](DEPLOYMENT.md)):
 
 ```mermaid
 graph TD
     User["User browser"] -->|HTTPS| Vercel["Vercel: Next.js frontend"]
-    Vercel -->|"HTTPS REST API"| Render["Render: FastAPI web service"]
-    Render --- Worker["Celery worker (same service via honcho)"]
-    Render -->|"TLS psycopg"| DB[("Neon / Supabase: PostgreSQL")]
-    Worker -->|"TLS rediss"| Redis[("Upstash: serverless Redis")]
-    Render -->|"TLS rediss"| Redis
+    Vercel -->|"HTTPS REST API"| Render["Render: Docker web service"]
+    Render --- Worker["Celery worker — same container (start.sh)"]
+    Render -->|"psycopg 3 TLS, pooler:6543"| DB[("Supabase: PostgreSQL")]
+    Worker -->|"rediss:// TLS"| Redis[("Upstash: serverless Redis")]
+    Render -->|"rediss:// TLS"| Redis
 ```
 
 **Local development** uses the Docker Compose stack — Nginx fronts the Next.js
@@ -73,14 +73,14 @@ sequenceDiagram
 - **Cursor Pagination:** High-performance Keyset pagination for infinite-scroll transaction histories.
 - **Service-Oriented Architecture:** Includes Redis and Celery for asynchronous background task processing.
 - **Containerized local dev:** Full stack via Docker Compose behind Nginx.
-- **Distributed free-tier deploy:** Vercel + Render + Neon + Upstash, CI/CD from GitHub.
+- **Distributed free-tier deploy:** Vercel + Render + Supabase + Upstash, CI/CD from GitHub.
 
 ## Tech Stack
 - **Backend:** FastAPI, Python 3.12, SQLAlchemy 2.0, psycopg 3 (async), Celery
 - **Database / Cache:** PostgreSQL 15, Redis
 - **Frontend:** Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS
 - **Local infra:** Docker, Nginx
-- **Hosting:** Vercel (frontend), Render (API + worker), Neon/Supabase (Postgres), Upstash (Redis)
+- **Hosting:** Vercel (frontend), Render (API + worker in one Docker service), Supabase (Postgres), Upstash (Redis)
 
 ## Local Setup
 
@@ -100,11 +100,13 @@ npm run dev                  # http://localhost:3000
 The dev server proxies `/api/*` to `API_PROXY_TARGET` (default `http://localhost:8000`).
 
 ## Deployment
-Production is a distributed free-tier stack (Vercel, Render, Neon, Upstash) with
+Production is a zero-cost managed stack (Vercel, Render, Supabase, Upstash) with
 continuous deployment from GitHub. Full step-by-step instructions:
-[`deployment_guide.md`](deployment_guide.md).
+[`DEPLOYMENT.md`](DEPLOYMENT.md).
 
-- Backend config is entirely environment-driven: `DATABASE_URL`, `REDIS_URL`,
-  `FRONTEND_URL`, `SECRET_KEY` (see [`.env.example`](.env.example)).
-- `render.yaml` + `Procfile` run the API and Celery worker on one free Render
-  Web Service via `honcho`.
+- Backend config is entirely environment-driven — `DATABASE_URL`, `REDIS_URL`,
+  `FRONTEND_ORIGINS`, `SECRET_KEY` (see [`app/core/config.py`](app/core/config.py)
+  and [`.env.example`](.env.example)).
+- The root `Dockerfile` + `start.sh` run the API and Celery worker (solo pool)
+  in one free Render Web Service, with `SIGTERM` handling for clean shutdowns.
+- `render.yaml` is the Render Blueprint.

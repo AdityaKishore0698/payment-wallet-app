@@ -5,6 +5,84 @@ context survives across sessions. Newest entries at the top.
 
 ---
 
+## Phase 3 — Cloud-native refactor (Supabase pooler, single-container Render)
+
+**Branch:** `feature/nextjs-frontend` (continues from Phase 2)
+**Status:** code + config + docs done; local Docker stack + Playwright re-verified.
+Supersedes several Phase 2 choices per an updated, more specific spec from the
+user.
+
+### What changed vs Phase 2
+
+**Backend**
+- New `app/core/config.py` — single place that reads every env var
+  (`DATABASE_URL`, `REDIS_URL`, `FRONTEND_ORIGINS`, `FRONTEND_ORIGIN_REGEX`,
+  `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`). `security.py`,
+  `database.py`, `worker.py`, `main.py` all import from it. `security.py`
+  re-exports `SECRET_KEY`/`ALGORITHM` so `dependencies.py` still works.
+- `app/core/database.py` — detects the Supabase **transaction pooler**
+  (`:6543` or `pooler.supabase.com` in the URL) and, for it, passes
+  `connect_args={"prepare_threshold": None}` (psycopg 3: never use server-side
+  prepared statements — required for PgBouncer transaction mode) + `NullPool`.
+  Direct connections keep `pool_pre_ping=True`. Scheme normalisation
+  (`postgres://` / `postgresql://` → `postgresql+psycopg_async://`) retained.
+  NOTE: the codebase uses **psycopg 3**, not asyncpg — `handoff.md` is stale on
+  this. The pooler fix is the psycopg 3 equivalent of asyncpg's
+  `statement_cache_size=0`.
+- `app/main.py` — CORS reads `FRONTEND_ORIGINS` (comma-separated list) +
+  optional `FRONTEND_ORIGIN_REGEX`. Replaces Phase 2's `FRONTEND_URL`.
+
+**Compute packaging — replaces honcho/Procfile**
+- Root `start.sh` — starts `celery ... --pool=solo &` then `uvicorn ... &`,
+  `trap`s SIGTERM/SIGINT to `kill -TERM` both children and `wait`, and
+  `wait -n` exits the container if either dies. `chmod +x`, `bash -n` clean.
+- Root `Dockerfile` — `python:3.12-slim`, installs `requirements.txt`, copies
+  `app/` + `start.sh`, `CMD ["./start.sh"]`.
+- `render.yaml` — now `runtime: docker`, `dockerfilePath: ./Dockerfile`,
+  env keys renamed to `FRONTEND_ORIGINS` / `FRONTEND_ORIGIN_REGEX`.
+- Deleted `Procfile`, `Dockerfile.api`; removed `honcho` from
+  `requirements.txt`.
+- `docker-compose.yml` — `api` + `celery_worker` now build the **root
+  Dockerfile** (one image) and each override `command:` to run a single
+  process; Nginx kept (local-only entrypoint). Header comment marks the file
+  local-only. `FRONTEND_ORIGINS` passed to the `api` service.
+
+**Frontend**
+- `NEXT_PUBLIC_API_BASE` → **`NEXT_PUBLIC_API_URL`** everywhere (`api.ts`,
+  `next.config.mjs` comment, `frontend/Dockerfile` ARG/ENV,
+  `docker-compose.yml` build arg, `frontend/.env.example`). Default still
+  `/api` (works behind Nginx / the dev proxy).
+- New `components/Modal.tsx` (generic dialog: ESC, backdrop click, scroll
+  lock), `components/TransferForm.tsx` (the transfer form logic extracted from
+  the page), `components/TransferModal.tsx`.
+- `/transfer` page now renders `<TransferForm>`; the **Dashboard "Send money"**
+  quick action opens `<TransferModal>` and refreshes balance + recent activity
+  on success.
+- `/history` — "Load more" button replaced with an **IntersectionObserver**
+  infinite-scroll sentinel (manual button kept as fallback). Guards against
+  double-fetch with a ref.
+- `lib/format.ts` — `counterpartyLabel()` helper; history renders
+  "Deleted User" / "System" in muted italics.
+
+**Docs**
+- New `DEPLOYMENT.md` (Supabase-pooler-first, `start.sh`/Dockerfile,
+  `FRONTEND_ORIGINS`, `NEXT_PUBLIC_API_URL`, troubleshooting matrix).
+  Deleted `deployment_guide.md`.
+- `README.md` — production diagram + deployment section updated.
+
+### Verified
+- `npm run build` / `typecheck` / `lint` clean.
+- `docker compose up -d --wait` all healthy; Playwright E2E 10/10.
+- `render.yaml` parses; `start.sh` `bash -n` clean.
+
+### Not done / follow-ups
+- No live cloud deploy (needs the user's accounts).
+- `render.yaml` targets `branch: main` — merge before first deploy.
+- Backend `pytest` suite still has the Phase 1 pre-existing failures.
+- `handoff.md` still says asyncpg — worth correcting in that doc.
+
+---
+
 ## Phase 2 — Deployment migration: AWS EC2 → distributed free tier
 
 **Branch:** `feature/nextjs-frontend` (continues from Phase 1)
