@@ -1,12 +1,13 @@
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, transaction, user, wallet
+from app.core.config import FRONTEND_ORIGIN_REGEX, FRONTEND_ORIGINS
 from app.core.database import engine
 from app.models.base import Base
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,24 +15,17 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     yield
 
+
 app = FastAPI(title="Digital Wallet API", version="1.0.0", lifespan=lifespan)
 
-# The hosted frontend (Vercel) and API (Render) live on different origins, so
-# CORS must allow the deployed frontend. FRONTEND_URL is the canonical
-# production origin; local dev origins are always allowed. Vercel preview
-# deployments get unique URLs — allow them via the *.vercel.app regex unless
-# FRONTEND_URL_REGEX overrides it.
-_allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-_frontend_url = os.getenv("FRONTEND_URL")
-if _frontend_url:
-    _allowed_origins.append(_frontend_url.rstrip("/"))
-
-_origin_regex = os.getenv("FRONTEND_URL_REGEX", r"https://.*\.vercel\.app")
-
+# The hosted frontend (Vercel) and API (Render) are on different origins, so the
+# browser needs CORS to allow the deployed frontend. Origins come from the
+# FRONTEND_ORIGINS env var (comma-separated); FRONTEND_ORIGIN_REGEX optionally
+# covers Vercel preview deploys.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
-    allow_origin_regex=_origin_regex,
+    allow_origins=FRONTEND_ORIGINS,
+    allow_origin_regex=FRONTEND_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
