@@ -1,3 +1,11 @@
+# Local development / integration-testing stack ONLY.
+# Production runs on Vercel + Render + Supabase + Upstash — see DEPLOYMENT.md.
+#
+# Nginx fronts everything on http://localhost:  /  -> Next.js frontend,
+# /api/ -> FastAPI (prefix stripped). The API and Celery worker share the same
+# image (root Dockerfile) but run one process each here, mirroring Render's
+# start.sh split.
+
 services:
   db:
     image: postgres:15
@@ -30,13 +38,15 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg_async://postgres:postgres@db:5432/wallet_db
       REDIS_URL: redis://redis:6379/0
+      FRONTEND_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost
     depends_on:
       db:
         condition: service_healthy
@@ -52,7 +62,7 @@ services:
   celery_worker:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile
     restart: unless-stopped
     command: celery -A app.worker.celery_app worker --loglevel=info
     environment:
@@ -71,7 +81,7 @@ services:
       args:
         # Baked into the client bundle. Requests go to /api, which Nginx routes
         # to the API container.
-        NEXT_PUBLIC_API_BASE: /api
+        NEXT_PUBLIC_API_URL: /api
     restart: unless-stopped
     ports:
       - "3000:3000"
