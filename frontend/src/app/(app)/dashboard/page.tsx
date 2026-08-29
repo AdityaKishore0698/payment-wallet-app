@@ -1,27 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { api, type Transaction } from "@/lib/api";
 import { Card, CardBody, Badge, Spinner } from "@/components/ui";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { TransferModal } from "@/components/TransferModal";
+import { counterpartyLabel, formatCurrency, formatDateTime } from "@/lib/format";
 
 export default function DashboardPage() {
   const { user, wallet, token, refreshWallet } = useAuth();
   const [recent, setRecent] = useState<Transaction[] | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+
+  const loadRecent = useCallback(() => {
+    if (!token || !wallet) return;
+    api
+      .history(token, wallet.id, null, 6)
+      .then((res) => setRecent(res.data))
+      .catch(() => setRecent([]));
+  }, [token, wallet]);
 
   useEffect(() => {
     refreshWallet();
   }, [refreshWallet]);
 
   useEffect(() => {
-    if (!token || !wallet) return;
-    api
-      .history(token, wallet.id, null, 5)
-      .then((res) => setRecent(res.data))
-      .catch(() => setRecent([]));
-  }, [token, wallet]);
+    loadRecent();
+  }, [loadRecent]);
 
   return (
     <div className="space-y-8">
@@ -57,16 +63,16 @@ export default function DashboardPage() {
           <CardBody className="flex h-full flex-col justify-center gap-3">
             <Link
               href="/add-funds"
-              className="rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-700 hover:bg-brand-100"
+              className="rounded-xl bg-brand-50 px-4 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-brand-100"
             >
               + Add funds
             </Link>
-            <Link
-              href="/transfer"
+            <button
+              onClick={() => setTransferOpen(true)}
               className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200"
             >
               → Send money
-            </Link>
+            </button>
           </CardBody>
         </Card>
       </div>
@@ -102,7 +108,7 @@ export default function DashboardPage() {
                 >
                   <div>
                     <p className="text-sm font-medium text-slate-800">
-                      {tx.counterparty_name ?? "—"}
+                      {counterpartyLabel(tx.counterparty_name)}
                     </p>
                     <p className="text-xs text-slate-500">
                       {formatDateTime(tx.created_at)}
@@ -129,6 +135,15 @@ export default function DashboardPage() {
           )}
         </CardBody>
       </Card>
+
+      <TransferModal
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        onDone={() => {
+          refreshWallet();
+          loadRecent();
+        }}
+      />
     </div>
   );
 }

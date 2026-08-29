@@ -28,13 +28,14 @@ Target something other than Nginx with `E2E_BASE_URL` (e.g.
 
 ## Environment
 
-| Variable               | Default                 | Purpose                                                        |
-| ---------------------- | ----------------------- | ------------------------------------------------------------- |
-| `NEXT_PUBLIC_API_BASE` | `/api`                  | Base path the browser uses for API calls (baked at build).   |
-| `API_PROXY_TARGET`     | `http://localhost:8000` | Where the Next server rewrites `/api/*` (dev / non-Nginx).   |
+| Variable              | Default                 | Purpose                                                     |
+| --------------------- | ----------------------- | ---------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL` | `/api`                  | API base the browser uses (baked in at build time).       |
+| `API_PROXY_TARGET`    | `http://localhost:8000` | Where `npm run dev` rewrites `/api/*` (dev / non-Nginx).  |
 
-In production, Nginx serves this app on `/` and routes `/api/` to FastAPI, so
-the defaults require no changes.
+Local (Docker/Nginx): leave `NEXT_PUBLIC_API_URL` unset — the relative `/api`
+default is proxied to FastAPI. Hosted (Vercel): set it to the absolute Render
+URL, e.g. `https://wallet-api.onrender.com`.
 
 ## Structure
 
@@ -43,9 +44,9 @@ src/
   app/
     (auth)/        login, register, forgot-password  — redirects to /dashboard when signed in
     (app)/         dashboard, add-funds, transfer, history, settings — guarded, wrapped in AppShell
-  components/      UI primitives, AppShell, Logo
+  components/      UI primitives, AppShell, Logo, Modal, TransferForm/TransferModal
   lib/
-    api.ts         typed FastAPI client
+    api.ts         typed FastAPI client (NEXT_PUBLIC_API_URL)
     auth.tsx       AuthProvider (JWT in localStorage) + useAuth()
-    format.ts      currency / date helpers
+    format.ts      currency / date / counterparty helpers
 ```

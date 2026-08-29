@@ -15,6 +15,17 @@ export function formatCurrency(
   }
 }
 
+/**
+ * Display label for a transaction counterparty. The backend returns:
+ *   - a person's name for a P2P transfer,
+ *   - "System" for top-ups (no reference_id),
+ *   - "Deleted User" when the counterparty closed their account.
+ * Returns the string as-is, with a dash fallback for unexpected nulls.
+ */
+export function counterpartyLabel(name: string | null | undefined): string {
+  return name && name.trim() ? name : "—";
+}
+
 export function formatDateTime(iso: string): string {
   const d = new Date(iso.endsWith("Z") || iso.includes("+") ? iso : `${iso}Z`);
   if (Number.isNaN(d.getTime())) return iso;

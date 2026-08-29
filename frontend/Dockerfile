@@ -9,10 +9,10 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# The API base is baked in at build time (NEXT_PUBLIC_*). Default "/api" works
-# behind Nginx; override with --build-arg for other setups.
-ARG NEXT_PUBLIC_API_BASE=/api
-ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE
+# The API URL is baked in at build time (NEXT_PUBLIC_*). Default "/api" works
+# behind Nginx; Vercel sets it to the absolute Render URL instead.
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ---- Runner ----

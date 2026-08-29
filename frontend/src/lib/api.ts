@@ -1,11 +1,13 @@
 // Thin client for the FastAPI backend.
 //
-// All requests go through `NEXT_PUBLIC_API_BASE` (default "/api"), which Nginx
-// routes to the API container in production and next.config.mjs rewrites to the
-// backend during local development.
+// `NEXT_PUBLIC_API_URL` selects the backend:
+//   - unset (local): "/api" — Nginx routes it to the API container, and
+//     next.config.mjs rewrites it during `npm run dev`.
+//   - hosted (Vercel): the absolute Render URL, e.g.
+//     "https://wallet-api.onrender.com" or ".../api".
 
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") || "/api";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/api";
 
 export class ApiError extends Error {
   status: number;

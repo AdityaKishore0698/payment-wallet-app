@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { api, ApiError, type Transaction } from "@/lib/api";
 import { Alert, Badge, Button, Card, CardBody, Spinner } from "@/components/ui";
-import { formatCurrency, formatDateTime } from "@/lib/format";
+import { counterpartyLabel, formatCurrency, formatDateTime } from "@/lib/format";
+
+const PAGE_SIZE = 15;
 
 export default function HistoryPage() {
   const { token, wallet } = useAuth();
@@ -14,17 +16,26 @@ export default function HistoryPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Guards against the IntersectionObserver firing multiple loads at once.
+  const fetchingRef = useRef(false);
+  const cursorRef = useRef<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   const load = useCallback(
     async (nextCursor: string | null) => {
-      if (!token || !wallet) return;
+      if (!token || !wallet || fetchingRef.current) return;
+      fetchingRef.current = true;
       try {
-        const res = await api.history(token, wallet.id, nextCursor, 15);
+        const res = await api.history(token, wallet.id, nextCursor, PAGE_SIZE);
         setRows((prev) => (nextCursor ? [...prev, ...res.data] : res.data));
         setCursor(res.next_cursor);
+        cursorRef.current = res.next_cursor;
       } catch (err) {
         setError(
           err instanceof ApiError ? err.message : "Could not load history.",
         );
+      } finally {
+        fetchingRef.current = false;
       }
     },
     [token, wallet],
@@ -36,11 +47,28 @@ export default function HistoryPage() {
     load(null).finally(() => setInitialLoading(false));
   }, [token, wallet, load]);
 
-  async function loadMore() {
+  const loadMore = useCallback(async () => {
+    if (!cursorRef.current || fetchingRef.current) return;
     setLoadingMore(true);
-    await load(cursor);
+    await load(cursorRef.current);
     setLoadingMore(false);
-  }
+  }, [load]);
+
+  // Infinite scroll: fetch the next page when the sentinel scrolls into view.
+  // Re-runs when `cursor` changes so the observer re-attaches after the
+  // sentinel (which only renders while there's a next page) mounts.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !cursor) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore, cursor]);
 
   return (
     <div className="space-y-6">
@@ -73,67 +101,84 @@ export default function HistoryPage() {
                 <span className="text-right">Status</span>
               </div>
               <ul className="divide-y divide-slate-100">
-                {rows.map((tx) => (
-                  <li
-                    key={tx.id}
-                    className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-6 py-4 sm:grid-cols-[1fr_auto_auto]"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-800">
-                        {tx.counterparty_name ?? "—"}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        <span
+                {rows.map((tx) => {
+                  const label = counterpartyLabel(tx.counterparty_name);
+                  const muted = label === "Deleted User" || label === "System";
+                  return (
+                    <li
+                      key={tx.id}
+                      className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-6 py-4 sm:grid-cols-[1fr_auto_auto]"
+                    >
+                      <div className="min-w-0">
+                        <p
                           className={
-                            "font-semibold " +
-                            (tx.type === "CREDIT"
-                              ? "text-emerald-600"
-                              : "text-slate-600")
+                            "truncate text-sm font-medium " +
+                            (muted ? "italic text-slate-400" : "text-slate-800")
                           }
                         >
-                          {tx.type}
-                        </span>
-                        {" · "}
-                        {formatDateTime(tx.created_at)}
-                      </p>
-                    </div>
-                    <p
-                      className={
-                        "text-right text-sm font-semibold " +
-                        (tx.type === "CREDIT"
-                          ? "text-emerald-600"
-                          : "text-slate-800")
-                      }
-                    >
-                      {tx.type === "CREDIT" ? "+" : "−"}
-                      {formatCurrency(tx.amount, wallet?.currency)}
-                    </p>
-                    <div className="col-start-2 row-start-2 flex justify-end sm:col-start-3 sm:row-start-1">
-                      <Badge
-                        tone={
-                          tx.status === "SUCCESS"
-                            ? "green"
-                            : tx.status === "FAILED"
-                              ? "red"
-                              : "slate"
+                          {label}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          <span
+                            className={
+                              "font-semibold " +
+                              (tx.type === "CREDIT"
+                                ? "text-emerald-600"
+                                : "text-slate-600")
+                            }
+                          >
+                            {tx.type}
+                          </span>
+                          {" · "}
+                          {formatDateTime(tx.created_at)}
+                        </p>
+                      </div>
+                      <p
+                        className={
+                          "text-right text-sm font-semibold " +
+                          (tx.type === "CREDIT"
+                            ? "text-emerald-600"
+                            : "text-slate-800")
                         }
                       >
-                        {tx.status}
-                      </Badge>
-                    </div>
-                  </li>
-                ))}
+                        {tx.type === "CREDIT" ? "+" : "−"}
+                        {formatCurrency(tx.amount, wallet?.currency)}
+                      </p>
+                      <div className="col-start-2 row-start-2 flex justify-end sm:col-start-3 sm:row-start-1">
+                        <Badge
+                          tone={
+                            tx.status === "SUCCESS"
+                              ? "green"
+                              : tx.status === "FAILED"
+                                ? "red"
+                                : "slate"
+                          }
+                        >
+                          {tx.status}
+                        </Badge>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
+
+              {/* Infinite-scroll sentinel + manual fallback */}
               {cursor && (
-                <div className="border-t border-slate-100 p-4">
-                  <Button
-                    variant="secondary"
-                    onClick={loadMore}
-                    loading={loadingMore}
-                    className="w-full"
-                  >
-                    Load more
-                  </Button>
+                <div
+                  ref={sentinelRef}
+                  className="flex items-center justify-center border-t border-slate-100 p-4"
+                >
+                  {loadingMore ? (
+                    <Spinner className="h-5 w-5 text-brand-600" />
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      onClick={loadMore}
+                      className="w-full"
+                    >
+                      Load more
+                    </Button>
+                  )}
                 </div>
               )}
             </>
