@@ -125,17 +125,23 @@ Render **Logs** should show `Uvicorn running on http://0.0.0.0:10000` and
 1. Vercel → **Add New → Project** → import the repo.
 2. **Root Directory → `frontend`** (click *Edit*). Vercel auto-detects Next.js;
    leave build settings default.
-3. **Environment Variables** (Production **and** Preview):
+3. **Environment Variables** — add this **before the first deploy**, for
+   **Production _and_ Preview**:
 
    | Key | Value |
    | --- | --- |
-   | `NEXT_PUBLIC_API_URL` | `https://wallet-api.onrender.com` — your Render URL, **no trailing slash** |
+   | `NEXT_PUBLIC_API_URL` | `https://wallet-api.onrender.com` — your Render URL, root only: **no trailing slash, no `/api`** |
+
+   FastAPI serves its routes at the root (`/auth/login`, `/users/`, …), so the
+   value must be the bare origin.
 
 4. **Deploy.** Note the production URL, e.g.
    `https://payment-wallet.vercel.app`.
 
-> `NEXT_PUBLIC_*` is inlined at build time — changing it later needs a redeploy
-> (Vercel → Deployments → ⋯ → Redeploy).
+> **`NEXT_PUBLIC_*` is inlined at build time.** If you add or change it after a
+> deploy, you must **redeploy** (Vercel → Deployments → ⋯ → Redeploy) — the
+> running build keeps the old value. A frontend built with this unset calls its
+> own `/api/*` path and every API request 404s (see Troubleshooting).
 
 ---
 
@@ -207,6 +213,8 @@ container-network values (see `README.md`).
 | API logs: `password authentication failed` | Wrong password in `DATABASE_URL`, or the `postgres.<ref>` username prefix was dropped — copy the pooler URI exactly. |
 | Celery: `Error 1 connecting to ... SSL` / `ssl required` | `REDIS_URL` must be the `rediss://` URL from Upstash, not `redis://`. |
 | Browser: `blocked by CORS policy` | `FRONTEND_ORIGINS` on Render must contain the exact Vercel origin (scheme + host, no trailing slash). Redeploy after changing it. |
-| Frontend calls `localhost:8000` in production | `NEXT_PUBLIC_API_URL` wasn't set at build time — set it and **redeploy** on Vercel. |
+| Login/any action fails; response is HTML `404: This page could not be found` | The frontend is calling **its own** `/api/*` path — `NEXT_PUBLIC_API_URL` was unset (or added without redeploying). Set it to the Render origin in Vercel → Settings → Environment Variables (Production + Preview), then **Deployments → ⋯ → Redeploy**. The login form now shows a clear message instead of raw HTML when this happens. |
+| Frontend calls `localhost:8000` in production | Same cause as above — `NEXT_PUBLIC_API_URL` not set at build time. Set it and **redeploy**. |
+| API returns `{"detail":"Not Found"}` (JSON) for `/auth/login` | `NEXT_PUBLIC_API_URL` has a trailing `/api` or path — FastAPI serves at the root. Use the bare origin. |
 | First request each session takes ~40s | Render free-service cold start + Supabase wake. Expected. |
 | Container killed with `SIGKILL` on deploy | Rare; `start.sh` traps `SIGTERM`. Check Render logs for a stuck Celery shutdown; solo pool normally exits fast. |

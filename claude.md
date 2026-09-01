@@ -72,8 +72,27 @@ user.
 
 ### Verified
 - `npm run build` / `typecheck` / `lint` clean.
-- `docker compose up -d --wait` all healthy; Playwright E2E 10/10.
-- `render.yaml` parses; `start.sh` `bash -n` clean.
+- `docker compose up -d --wait` all healthy; Playwright E2E 12/12.
+- `render.yaml` parses; `start.sh` `bash -n` clean; `start.sh` run directly from
+  the image starts both processes and `docker stop` returns in ~1s (graceful).
+
+### Post-deploy fix: login returned a Next.js 404 HTML page
+Symptom: after deploying, the login form showed a raw
+`404: This page could not be found` HTML document.
+Cause: **`NEXT_PUBLIC_API_URL` was not set on Vercel**, so the client called
+`https://<vercel-app>/api/auth/login`. On Vercel the `/api` rewrite is disabled
+(`next.config.mjs` returns `[]` when `process.env.VERCEL` is set) and there is no
+such route, so Next.js served its 404. Reproduced locally with
+`VERCEL=1 npm run build` + the standalone server: `/login` 200,
+`POST /api/auth/login` → 404 `text/html`.
+Fix (config, not code): set `NEXT_PUBLIC_API_URL` to the bare Render origin
+(no `/api`, no trailing slash) in Vercel → Environment Variables (Production +
+Preview) and **redeploy** (it is build-time inlined).
+Hardening (`frontend/src/lib/api.ts`): logs a `console.warn` on load when the
+base is `/api` on a non-localhost host; `request()` detects an HTML response and
+throws a clear `ApiError` ("NEXT_PUBLIC_API_URL is not configured…") instead of
+dumping the HTML into the error alert. `DEPLOYMENT.md` troubleshooting + step 4
+updated.
 
 ### Not done / follow-ups
 - No live cloud deploy (needs the user's accounts).

@@ -3,11 +3,29 @@
 // `NEXT_PUBLIC_API_URL` selects the backend:
 //   - unset (local): "/api" — Nginx routes it to the API container, and
 //     next.config.mjs rewrites it during `npm run dev`.
-//   - hosted (Vercel): the absolute Render URL, e.g.
-//     "https://wallet-api.onrender.com" or ".../api".
+//   - hosted (Vercel): the absolute Render URL with NO path, e.g.
+//     "https://wallet-api.onrender.com" (FastAPI serves routes at the root:
+//     /auth/login, /users/, ...). Must be set at build time and redeployed.
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "/api";
+
+// A relative API base only works when something (Nginx locally, the dev proxy)
+// forwards /api to the backend. On a hosted frontend with no such proxy it
+// means NEXT_PUBLIC_API_URL was never set — surface that early.
+const MISCONFIGURED =
+  API_BASE === "/api" &&
+  typeof window !== "undefined" &&
+  !["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+if (MISCONFIGURED) {
+  console.warn(
+    "[api] NEXT_PUBLIC_API_URL is not set — API calls resolve to this site's " +
+      "/api path, which only works behind a proxy. For a Vercel deployment set " +
+      "NEXT_PUBLIC_API_URL to the backend URL (e.g. https://wallet-api.onrender.com) " +
+      "and redeploy.",
+  );
+}
 
 export class ApiError extends Error {
   status: number;
@@ -50,6 +68,22 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
+
+  // An HTML body means the request never reached the API — it hit the frontend
+  // origin (or a proxy error page) instead. Almost always a missing/wrong
+  // NEXT_PUBLIC_API_URL on the deployed frontend.
+  const looksLikeHtml =
+    (res.headers.get("content-type") || "").includes("text/html") ||
+    text.trimStart().startsWith("<");
+  if (looksLikeHtml) {
+    throw new ApiError(
+      res.status,
+      MISCONFIGURED
+        ? "Can't reach the API: NEXT_PUBLIC_API_URL is not configured. Set it to the backend URL and redeploy."
+        : "Can't reach the API (got an HTML response). Check that the backend is running and reachable.",
+    );
+  }
+
   let payload: unknown = null;
   if (text) {
     try {
