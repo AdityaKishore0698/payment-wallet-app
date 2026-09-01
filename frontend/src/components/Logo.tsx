@@ -18,7 +18,7 @@ export function Logo({ className }: { className?: string }) {
           />
         </svg>
       </span>
-      <span className="text-slate-900">Digital Wallet</span>
+      <span className="text-slate-900 dark:text-slate-100">Digital Wallet</span>
     </span>
   );
 }

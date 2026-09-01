@@ -32,16 +32,16 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
           Welcome back{user ? `, ${user.first_name}` : ""} 👋
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Here&apos;s a snapshot of your wallet.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="sm:col-span-2 bg-gradient-to-br from-brand-600 to-brand-500 text-white">
+        <Card className="sm:col-span-2 border-transparent bg-gradient-to-br from-brand-600 to-brand-500 text-white dark:border-transparent dark:from-brand-700 dark:to-brand-600">
           <CardBody>
             <p className="text-sm text-brand-100">Available balance</p>
             <p className="mt-2 text-4xl font-semibold">
@@ -63,13 +63,13 @@ export default function DashboardPage() {
           <CardBody className="flex h-full flex-col justify-center gap-3">
             <Link
               href="/add-funds"
-              className="rounded-xl bg-brand-50 px-4 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-brand-100"
+              className="rounded-xl bg-brand-50 px-4 py-3 text-center text-sm font-semibold text-brand-700 hover:bg-brand-100 dark:bg-brand-950/60 dark:text-brand-300 dark:hover:bg-brand-950"
             >
               + Add funds
             </Link>
             <button
               onClick={() => setTransferOpen(true)}
-              className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+              className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               → Send money
             </button>
@@ -80,12 +80,12 @@ export default function DashboardPage() {
       <Card>
         <CardBody>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
               Recent activity
             </h2>
             <Link
               href="/history"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
             >
               View all
             </Link>
@@ -93,24 +93,24 @@ export default function DashboardPage() {
 
           {recent === null ? (
             <div className="flex justify-center py-8">
-              <Spinner className="h-6 w-6 text-brand-600" />
+              <Spinner className="h-6 w-6 text-brand-600 dark:text-brand-400" />
             </div>
           ) : recent.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-500">
+            <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
               No transactions yet. Add funds to get started.
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
               {recent.map((tx) => (
                 <li
                   key={tx.id}
                   className="flex items-center justify-between py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-800">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                       {counterpartyLabel(tx.counterparty_name)}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {formatDateTime(tx.created_at)}
                     </p>
                   </div>
@@ -118,8 +118,8 @@ export default function DashboardPage() {
                     <p
                       className={
                         tx.type === "CREDIT"
-                          ? "text-sm font-semibold text-emerald-600"
-                          : "text-sm font-semibold text-slate-800"
+                          ? "text-sm font-semibold text-emerald-600 dark:text-emerald-400"
+                          : "text-sm font-semibold text-slate-800 dark:text-slate-200"
                       }
                     >
                       {tx.type === "CREDIT" ? "+" : "−"}

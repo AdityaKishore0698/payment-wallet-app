@@ -137,7 +137,7 @@ export function TransferForm({
 
       {contacts.length > 0 && (
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-700">
+          <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
             Recent contacts
           </p>
           <div className="flex flex-wrap gap-2">
@@ -146,7 +146,7 @@ export function TransferForm({
                 key={c}
                 type="button"
                 onClick={() => selectContact(c)}
-                className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-xs text-slate-600 hover:border-brand-400 hover:text-brand-700"
+                className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-xs text-slate-600 hover:border-brand-400 hover:text-brand-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-300"
               >
                 {c}
               </button>
@@ -168,7 +168,7 @@ export function TransferForm({
         </Field>
 
         {lookup.status === "loading" && (
-          <p className="flex items-center gap-2 text-sm text-slate-500">
+          <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Spinner className="h-4 w-4" /> Verifying…
           </p>
         )}

@@ -15,6 +15,7 @@ export function Card({
     <div
       className={cn(
         "rounded-2xl border border-slate-200 bg-white shadow-card",
+        "dark:border-slate-800 dark:bg-slate-900",
         className,
       )}
       {...props}
@@ -40,12 +41,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 ) {
   const styles: Record<string, string> = {
     primary:
-      "bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline-brand-600",
+      "bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline-brand-600 dark:bg-brand-500 dark:hover:bg-brand-400",
     secondary:
-      "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 focus-visible:outline-slate-400",
+      "bg-white text-slate-800 border border-slate-300 hover:bg-slate-50 focus-visible:outline-slate-400 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700",
     danger:
-      "bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600",
-    ghost: "bg-transparent text-slate-600 hover:bg-slate-100",
+      "bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500",
+    ghost:
+      "bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
   };
   return (
     <button
@@ -78,6 +80,9 @@ export const Input = forwardRef<
         "placeholder:text-slate-400 shadow-sm transition",
         "focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200",
         "disabled:bg-slate-50 disabled:text-slate-500",
+        "dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500",
+        "dark:focus:border-brand-500 dark:focus:ring-brand-500/30",
+        "dark:disabled:bg-slate-800 dark:disabled:text-slate-500",
         className,
       )}
       {...props}
@@ -100,12 +105,14 @@ export function Field({
     <div className="space-y-1.5">
       <label
         htmlFor={htmlFor}
-        className="block text-sm font-medium text-slate-700"
+        className="block text-sm font-medium text-slate-700 dark:text-slate-300"
       >
         {label}
       </label>
       {children}
-      {hint && <p className="text-xs text-slate-500">{hint}</p>}
+      {hint && (
+        <p className="text-xs text-slate-500 dark:text-slate-400">{hint}</p>
+      )}
     </div>
   );
 }
@@ -118,16 +125,15 @@ export function Alert({
   children: ReactNode;
 }) {
   const styles: Record<string, string> = {
-    error: "bg-rose-50 text-rose-700 border-rose-200",
-    success: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    info: "bg-brand-50 text-brand-700 border-brand-200",
+    error:
+      "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900",
+    success:
+      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-900",
+    info: "bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-950/50 dark:text-brand-300 dark:border-brand-900",
   };
   return (
     <div
-      className={cn(
-        "rounded-xl border px-4 py-3 text-sm",
-        styles[variant],
-      )}
+      className={cn("rounded-xl border px-4 py-3 text-sm", styles[variant])}
       role={variant === "error" ? "alert" : "status"}
     >
       {children}
@@ -168,9 +174,11 @@ export function Badge({
   tone?: "slate" | "green" | "red";
 }) {
   const styles: Record<string, string> = {
-    slate: "bg-slate-100 text-slate-600",
-    green: "bg-emerald-100 text-emerald-700",
-    red: "bg-rose-100 text-rose-700",
+    slate:
+      "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+    green:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+    red: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
   };
   return (
     <span

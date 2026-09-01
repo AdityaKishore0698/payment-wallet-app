@@ -36,8 +36,10 @@ export default function LoginPage() {
     <Card>
       <CardBody className="space-y-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold text-slate-900">Welcome back</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            Welcome back
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             Sign in to access your wallet.
           </p>
         </div>
@@ -75,13 +77,13 @@ export default function LoginPage() {
         <div className="flex items-center justify-between text-sm">
           <Link
             href="/forgot-password"
-            className="font-medium text-brand-600 hover:text-brand-700"
+            className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
           >
             Forgot password?
           </Link>
           <Link
             href="/register"
-            className="font-medium text-brand-600 hover:text-brand-700"
+            className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
           >
             Create an account
           </Link>

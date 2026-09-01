@@ -73,10 +73,10 @@ export default function HistoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
           Transaction history
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Cursor-paginated ledger, newest first.
         </p>
       </div>
@@ -87,20 +87,20 @@ export default function HistoryPage() {
         <CardBody className="p-0 sm:p-0">
           {initialLoading ? (
             <div className="flex justify-center py-16">
-              <Spinner className="h-7 w-7 text-brand-600" />
+              <Spinner className="h-7 w-7 text-brand-600 dark:text-brand-400" />
             </div>
           ) : rows.length === 0 ? (
-            <p className="py-16 text-center text-sm text-slate-500">
+            <p className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
               No transactions found.
             </p>
           ) : (
             <>
-              <div className="hidden grid-cols-[1fr_auto_auto] gap-4 border-b border-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 sm:grid">
+              <div className="hidden grid-cols-[1fr_auto_auto] gap-4 border-b border-slate-100 px-6 py-3 text-xs font-semibold uppercase tracking-wide text-slate-400 sm:grid dark:border-slate-800 dark:text-slate-500">
                 <span>Counterparty</span>
                 <span className="text-right">Amount</span>
                 <span className="text-right">Status</span>
               </div>
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {rows.map((tx) => {
                   const label = counterpartyLabel(tx.counterparty_name);
                   const muted = label === "Deleted User" || label === "System";
@@ -113,18 +113,20 @@ export default function HistoryPage() {
                         <p
                           className={
                             "truncate text-sm font-medium " +
-                            (muted ? "italic text-slate-400" : "text-slate-800")
+                            (muted
+                              ? "italic text-slate-400 dark:text-slate-500"
+                              : "text-slate-800 dark:text-slate-200")
                           }
                         >
                           {label}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           <span
                             className={
                               "font-semibold " +
                               (tx.type === "CREDIT"
-                                ? "text-emerald-600"
-                                : "text-slate-600")
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-slate-600 dark:text-slate-300")
                             }
                           >
                             {tx.type}
@@ -137,8 +139,8 @@ export default function HistoryPage() {
                         className={
                           "text-right text-sm font-semibold " +
                           (tx.type === "CREDIT"
-                            ? "text-emerald-600"
-                            : "text-slate-800")
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-800 dark:text-slate-200")
                         }
                       >
                         {tx.type === "CREDIT" ? "+" : "−"}
@@ -166,10 +168,10 @@ export default function HistoryPage() {
               {cursor && (
                 <div
                   ref={sentinelRef}
-                  className="flex items-center justify-center border-t border-slate-100 p-4"
+                  className="flex items-center justify-center border-t border-slate-100 p-4 dark:border-slate-800"
                 >
                   {loadingMore ? (
-                    <Spinner className="h-5 w-5 text-brand-600" />
+                    <Spinner className="h-5 w-5 text-brand-600 dark:text-brand-400" />
                   ) : (
                     <Button
                       variant="secondary"

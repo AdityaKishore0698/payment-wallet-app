@@ -46,7 +46,7 @@ export default function RegisterPage() {
     return (
       <Card>
         <CardBody className="space-y-5">
-          <h2 className="text-2xl font-semibold text-slate-900">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             You&apos;re all set 🎉
           </h2>
           <Alert variant="success">
@@ -69,10 +69,10 @@ export default function RegisterPage() {
     <Card>
       <CardBody className="space-y-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold text-slate-900">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             Create your account
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             It takes less than a minute.
           </p>
         </div>
@@ -127,11 +127,11 @@ export default function RegisterPage() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-medium text-brand-600 hover:text-brand-700"
+            className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
           >
             Sign in
           </Link>

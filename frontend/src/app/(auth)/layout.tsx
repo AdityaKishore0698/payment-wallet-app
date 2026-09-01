@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function AuthLayout({
   children,
@@ -19,7 +20,7 @@ export default function AuthLayout({
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="hidden flex-col justify-between bg-brand-600 p-12 text-white lg:flex">
+      <div className="hidden flex-col justify-between bg-brand-600 p-12 text-white lg:flex dark:bg-brand-700">
         <Logo className="text-white [&_span:last-child]:text-white" />
         <div className="space-y-6">
           <h1 className="text-4xl font-semibold leading-tight">
@@ -41,7 +42,10 @@ export default function AuthLayout({
         </p>
       </div>
 
-      <div className="flex items-center justify-center p-6 sm:p-12">
+      <div className="relative flex items-center justify-center p-6 sm:p-12">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
+        </div>
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
             <Logo />

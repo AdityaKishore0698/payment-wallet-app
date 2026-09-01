@@ -44,9 +44,10 @@ src/
   app/
     (auth)/        login, register, forgot-password  — redirects to /dashboard when signed in
     (app)/         dashboard, add-funds, transfer, history, settings — guarded, wrapped in AppShell
-  components/      UI primitives, AppShell, Logo, Modal, TransferForm/TransferModal
+  components/      UI primitives, AppShell, Logo, Modal, TransferForm/TransferModal, ThemeToggle
   lib/
     api.ts         typed FastAPI client (NEXT_PUBLIC_API_URL)
     auth.tsx       AuthProvider (JWT in localStorage) + useAuth()
+    theme.tsx      ThemeProvider + useTheme() — light/dark/system, class-based, no-flash
     format.ts      currency / date / counterparty helpers
 ```

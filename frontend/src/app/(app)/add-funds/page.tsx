@@ -49,8 +49,10 @@ export default function AddFundsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Add funds</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Add funds
+        </h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Top up your wallet from your linked bank account.
         </p>
       </div>
@@ -84,7 +86,7 @@ export default function AddFundsPage() {
                   key={q}
                   type="button"
                   onClick={() => setAmount(String(q))}
-                  className="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-brand-400 hover:text-brand-700"
+                  className="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-brand-400 hover:text-brand-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-brand-500 dark:hover:text-brand-300"
                 >
                   {formatCurrency(q)}
                 </button>

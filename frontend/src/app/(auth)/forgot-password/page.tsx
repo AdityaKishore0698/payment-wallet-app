@@ -57,10 +57,10 @@ export default function ForgotPasswordPage() {
     <Card>
       <CardBody className="space-y-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold text-slate-900">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
             Reset your password
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             We&apos;ll send a recovery token to your email.
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function ForgotPasswordPage() {
           </Button>
         </form>
 
-        <div className="border-t border-slate-200 pt-6">
+        <div className="border-t border-slate-200 pt-6 dark:border-slate-800">
           <form onSubmit={resetPassword} className="space-y-4">
             <Field label="Recovery token" htmlFor="token">
               <Input
@@ -121,10 +121,10 @@ export default function ForgotPasswordPage() {
           </form>
         </div>
 
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
           <Link
             href="/login"
-            className="font-medium text-brand-600 hover:text-brand-700"
+            className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
           >
             Back to sign in
           </Link>

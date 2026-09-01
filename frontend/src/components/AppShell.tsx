@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/cn";
 import { formatCurrency } from "@/lib/format";
 
@@ -51,8 +52,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className={cn(
               "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
               active
-                ? "bg-brand-50 text-brand-700"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                ? "bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-brand-300"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100",
             )}
           >
             <svg
@@ -76,8 +77,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const sidebarInner = (
     <div className="flex h-full flex-col gap-6 p-5">
-      <Logo />
-      <div className="rounded-2xl bg-brand-600 p-4 text-white">
+      <div className="flex items-center justify-between">
+        <Logo />
+        <ThemeToggle />
+      </div>
+      <div className="rounded-2xl bg-brand-600 p-4 text-white dark:bg-brand-700">
         <p className="text-xs font-medium text-brand-100">Available balance</p>
         <p className="mt-1 text-2xl font-semibold">
           {wallet ? formatCurrency(wallet.balance, wallet.currency) : "—"}
@@ -91,16 +95,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {nav}
       <div className="mt-auto space-y-3">
         {user && (
-          <div className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm">
-            <p className="font-medium text-slate-800">
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5 text-sm dark:bg-slate-800/60">
+            <p className="font-medium text-slate-800 dark:text-slate-100">
               {user.first_name} {user.last_name ?? ""}
             </p>
-            <p className="truncate text-xs text-slate-500">{user.email}</p>
+            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+              {user.email}
+            </p>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
         >
           <svg
             viewBox="0 0 24 24"
@@ -123,22 +129,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
       {/* Desktop sidebar */}
-      <aside className="hidden border-r border-slate-200 bg-white lg:block">
+      <aside className="hidden border-r border-slate-200 bg-white lg:block dark:border-slate-800 dark:bg-slate-900">
         {sidebarInner}
       </aside>
 
       {/* Mobile header */}
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden dark:border-slate-800 dark:bg-slate-900">
         <Logo />
-        <button
-          onClick={() => setMobileOpen((v) => !v)}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-          aria-label="Toggle navigation"
-        >
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            aria-label="Toggle navigation"
+          >
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {mobileOpen && (
@@ -147,7 +156,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-slate-900/40"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl">
+          <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl dark:bg-slate-900">
             {sidebarInner}
           </div>
         </div>

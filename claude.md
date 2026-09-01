@@ -94,6 +94,22 @@ throws a clear `ApiError` ("NEXT_PUBLIC_API_URL is not configured…") instead o
 dumping the HTML into the error alert. `DEPLOYMENT.md` troubleshooting + step 4
 updated.
 
+### Dark mode (added after the post-deploy fix)
+- `tailwind.config.ts` — `darkMode: "class"`, added `brand.950`.
+- `src/lib/theme.tsx` — `ThemeProvider` / `useTheme()`; preference
+  `light | dark | system` in `localStorage["theme"]`, toggles `.dark` on
+  `<html>`. `themeInitScript` (exported string) is rendered as an inline
+  `<script>` at the top of `<body>` in `app/layout.tsx` so the class is set
+  before first paint (no flash); `<html suppressHydrationWarning>`.
+- `src/components/ThemeToggle.tsx` — sun/moon icon button; placed in the
+  `AppShell` sidebar + mobile header, and in the `(auth)` layout (top-right).
+- Dark variants applied across `components/ui.tsx`, `AppShell`, `Modal`,
+  `Logo`, the `(auth)` layout, and every page. Palette: page `slate-950`,
+  surfaces `slate-900` + `slate-800` borders, headings `slate-100`, body
+  `slate-200`, muted `slate-400`.
+- E2E: `frontend/e2e/theme.spec.ts` — toggle, persistence across reload,
+  stored-preference on the login page. Suite now 14/14.
+
 ### Not done / follow-ups
 - No live cloud deploy (needs the user's accounts).
 - `render.yaml` targets `branch: main` — merge before first deploy.

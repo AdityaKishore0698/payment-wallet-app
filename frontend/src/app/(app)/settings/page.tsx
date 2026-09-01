@@ -64,15 +64,17 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+          Settings
+        </h1>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Manage your account security.
         </p>
       </div>
 
       <Card>
         <CardBody className="space-y-5">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             Change password
           </h2>
           {pwError && <Alert variant="error">{pwError}</Alert>}
@@ -106,10 +108,12 @@ export default function SettingsPage() {
         </CardBody>
       </Card>
 
-      <Card className="border-rose-200">
+      <Card className="border-rose-200 dark:border-rose-900">
         <CardBody className="space-y-4">
-          <h2 className="text-lg font-semibold text-rose-700">Danger zone</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-semibold text-rose-700 dark:text-rose-400">
+            Danger zone
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             Deleting your account is permanent. Your wallet and all transaction
             records will be removed.
           </p>
